@@ -1,0 +1,48 @@
+{
+  "format": "rezepte-app/rezepte",
+  "version": 1,
+  "hinweis": "Pflicht: title (oder titel) und Zutaten oder Zubereitung. Alles andere ist optional. Zutaten als Textzeilen, eine pro Eintrag, Abschnitte mit Doppelpunkt am Ende.",
+  "rezepte": [
+    {
+      "title": "Pfannkuchen",
+      "description": "Dünn und goldbraun – süß oder herzhaft.",
+      "servings": 4,
+      "prepMin": 5,
+      "cookMin": 20,
+      "categories": [
+        "Frühstück",
+        "Dessert"
+      ],
+      "tags": [
+        "vegetarisch",
+        "kinderfreundlich"
+      ],
+      "source": "Omas Rezeptbuch",
+      "ingredients": [
+        "Für den Teig:",
+        "250 g Mehl",
+        "500 ml Milch",
+        "3 Eier",
+        "1 Prise Salz",
+        "Zum Ausbacken:",
+        "2 EL Butter"
+      ],
+      "steps": [
+        "Mehl, Milch, Eier und Salz glatt rühren und 10 Minuten quellen lassen.",
+        "Butter erhitzen und den Teig portionsweise goldbraun ausbacken."
+      ],
+      "notes": [
+        "Mit Apfelmus am besten."
+      ]
+    },
+    {
+      "titel": "Tomatensoße (deutsche Feldnamen)",
+      "portionen": "2 Portionen",
+      "kochzeit": "20 Min.",
+      "kategorie": "Hauptgericht",
+      "zutaten": "1 Dose gehackte Tomaten\n2 Zehen Knoblauch\n2 EL Olivenöl\nSalz",
+      "zubereitung": "1. Knoblauch im Öl andünsten.\n2. Tomaten dazugeben und 15 Minuten köcheln lassen.",
+      "tipps": "Mit Basilikum servieren."
+    }
+  ]
+}

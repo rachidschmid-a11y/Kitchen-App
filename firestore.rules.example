@@ -1,0 +1,39 @@
+rules_version = '2';
+
+// Sicherheitsregeln für „Unsere Küche“ – wie bei „Unser Nest“:
+// Nur Google-Konten mit einer der unten eingetragenen (bestätigten) E-Mail-Adressen dürfen
+// den Haushalt lesen oder ändern. Alle anderen – auch angemeldete Google-Konten, die die
+// Adresse der App kennen – werden abgelehnt.
+//
+// Dies ist die EINZIGE Stelle, an der festgelegt wird, wer Zugriff hat.
+// Vorlage: als firestore.rules speichern und eure Google-Adressen eintragen (firestore.rules ist nicht im Repo).
+// Neue Person freischalten: Adresse ergänzen, dann
+//   firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isFamily() {
+      return request.auth != null &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email in [
+          "person1@example.com",
+          "person2@example.com"
+        ];
+    }
+
+    // households/kueche: Einstellungen; darunter recipes, mealPlan, shoppingItems, photos, …
+    match /households/kueche {
+      allow read, write: if isFamily();
+
+      match /{document=**} {
+        allow read, write: if isFamily();
+      }
+    }
+
+    // Alles andere in dieser Datenbank ist für niemanden zugänglich.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

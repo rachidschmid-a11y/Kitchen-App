@@ -1,0 +1,24 @@
+# Private Unterlagen – nicht ins Repo:
+# Kochbuchfotos, PDFs, Rezeptsammlung und die Sicherung mit euren Notizen
+Import/
+noch_nicht_importiert/
+
+# Firebase-Werkzeuge
+.firebase/
+*-debug.log
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Temporäres
+_tmp*/
+public/_tmp*/
+node_modules/
+.DS_Store
+
+# Persönliche Projektdaten – nur lokal
+SETUP.md
+rezepte-app-handoff.md
+firestore.rules
+.firebaserc
+public/js/firebase-config.local.js

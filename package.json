@@ -1,0 +1,14 @@
+{
+  "name": "kitchen-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Unsere Küche – Rezepte, Wochenplan, Einkaufsliste und Vorrat für den Haushalt (Firebase).",
+  "scripts": {
+    "start": "python3 -m http.server 5180 --directory public",
+    "emulators": "firebase emulators:start --only auth,firestore --project demo-unsere-kueche",
+    "test": "node --test tests/*.test.js",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-unsere-kueche \"node --test tests/rules.emu.js\"",
+    "deploy": "firebase deploy --only hosting,firestore:rules"
+  }
+}
