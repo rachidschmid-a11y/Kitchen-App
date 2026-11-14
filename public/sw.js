@@ -6,11 +6,11 @@
    nie über diesen Service Worker.
    Bei neuen Dateien: APP_SHELL ergänzen (ein Test prüft das) und CACHE hochzählen. */
 
-var CACHE = 'unsere-kueche-v7';
+var CACHE = 'unsere-kueche-v8';
 var APP_SHELL = [
   './', 'index.html', 'teilen.html', 'manifest.webmanifest', 'css/app.css',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
-  'js/actions.js', 'js/ai-import.js', 'js/cloud.js', 'js/device.js', 'js/exchange.js', 'js/firebase.js', 'js/firebase-config.js', 'js/icons.js', 'js/image.js', 'js/importer.js', 'js/photo-upload.js', 'js/photos.js', 'js/main.js', 'js/members.js',
+  'js/actions.js', 'js/ai-import.js', 'js/cloud.js', 'js/device.js', 'js/exchange.js', 'js/firebase.js', 'js/firebase-config.js', 'js/firestore-safe.js', 'js/icons.js', 'js/image.js', 'js/importer.js', 'js/photo-upload.js', 'js/photos.js', 'js/main.js', 'js/members.js',
   'js/model.js', 'js/recipe-text.js', 'js/seed.js', 'js/share.js', 'js/share-page.js', 'js/store.js', 'js/theme.js', 'js/ui.js',
   'js/views/data.js', 'js/views/edit.js', 'js/views/import.js', 'js/views/pantry.js', 'js/views/people.js', 'js/views/plan.js',
   'js/views/recipe.js', 'js/views/recipes.js', 'js/views/settings.js', 'js/views/shopping.js',

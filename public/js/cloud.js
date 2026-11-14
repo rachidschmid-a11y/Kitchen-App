@@ -8,6 +8,7 @@ import { db, householdRef } from './firebase.js';
 import { store, COLLECTIONS, byCreated, normalize } from './store.js';
 import { seedData } from './seed.js';
 import { setRemote, syncPhotos } from './photos.js';
+import { toFirestore, fromFirestore } from './firestore-safe.js';
 
 const MAX_OPS = 400; // Firestore erlaubt 500 Schreibvorgänge pro Paket
 const MAX_PHOTO = 1_000_000; // ein Dokument darf höchstens 1 MiB groß sein
@@ -42,7 +43,7 @@ function diffOps(state) {
   const ops = [];
   const sj = json(state.settings);
   if (sj !== baseline.settings) {
-    ops.push({ ref: householdRef, data: { settings: state.settings, version: 1 } });
+    ops.push({ ref: householdRef, data: toFirestore({ settings: state.settings, version: 1 }) });
     baseline.settings = sj;
   }
   for (const col of COLLECTIONS) {
@@ -54,7 +55,7 @@ function diffOps(state) {
       const j = json(d);
       if (known.get(d.id) === j) continue;
       const { id, ...data } = d;
-      ops.push({ ref: doc(householdRef, col, id), data });
+      ops.push({ ref: doc(householdRef, col, id), data: toFirestore(data) });
       known.set(id, j);
     }
     for (const id of [...known.keys()]) {
@@ -108,7 +109,7 @@ export function startSync() {
     };
     const fail = (e) => { console.error(e); if (waiting.size) reject(e); else store.reportError(e); };
     unsubs.push(onSnapshot(householdRef, (snap) => {
-      const settings = snap.data()?.settings || {};
+      const settings = fromFirestore(snap.data()?.settings || {});
       baseline.settings = null;
       store.receive('settings', settings);
       baseline.settings = json(store.settings());
@@ -116,7 +117,7 @@ export function startSync() {
     }, fail));
     for (const col of COLLECTIONS) {
       unsubs.push(onSnapshot(collection(householdRef, col), (qs) => {
-        const docs = qs.docs.map((s) => ({ id: s.id, ...s.data() })).sort(byCreated);
+        const docs = qs.docs.map((s) => ({ id: s.id, ...fromFirestore(s.data()) })).sort(byCreated);
         store.receive(col, docs);
         baseline[col] = new Map(store.all(col).map((d) => [d.id, json(d)]));
         arrived(col);
