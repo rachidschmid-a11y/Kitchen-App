@@ -6,7 +6,7 @@
    nie über diesen Service Worker.
    Bei neuen Dateien: APP_SHELL ergänzen (ein Test prüft das) und CACHE hochzählen. */
 
-var CACHE = 'unsere-kueche-v6';
+var CACHE = 'unsere-kueche-v7';
 var APP_SHELL = [
   './', 'index.html', 'teilen.html', 'manifest.webmanifest', 'css/app.css',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',

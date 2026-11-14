@@ -3,9 +3,14 @@ import { store } from '../store.js';
 import { me } from '../members.js';
 import { icon } from '../icons.js';
 import { esc, deNum, photoHtml, tagsById, minutesLabel, todayIso } from '../ui.js';
-import { filterRecipes, totalMinutes, pantryStatus, matchRecipesToItems } from '../model.js';
+import { filterRecipes, totalMinutes, pantryStatus, matchRecipesToItems, ingredientMatches } from '../model.js';
 
-const filters = { q: '', categoryId: null, tagIds: [], favorites: false, sort: 'name' };
+// Worin gesucht wird, merkt sich jedes Gerät.
+const SEARCH_KEY = 'rezepte-app/suche-in';
+const SEARCH_MODES = [['all', 'Name & Zutaten', 'Rezept oder Zutat suchen'], ['name', 'Name', 'Rezeptname suchen'], ['ingredients', 'Zutaten', 'Zutat suchen, z. B. Feta, Paprika']];
+const savedMode = (() => { try { return localStorage.getItem(SEARCH_KEY); } catch (e) { return null; } })();
+
+const filters = { q: '', searchIn: SEARCH_MODES.some(([m]) => m === savedMode) ? savedMode : 'all', categoryId: null, tagIds: [], favorites: false, sort: 'name' };
 
 const SORTS = [['name', 'Name'], ['recent', 'Zuletzt gekocht'], ['rating', 'Bewertung'], ['time', 'Schnellste'], ['new', 'Neueste']];
 
@@ -39,6 +44,8 @@ export function recipesView({ query, rerender }) {
     list = matches.map((m) => m.recipe);
   } else {
     list = filterRecipes(store.all('recipes'), filters);
+    // Bei der Zutatensuche zeigt jede Kachel, welche Zutaten gefunden wurden.
+    if (filters.searchIn === 'ingredients' && filters.q.trim()) matchMap = new Map(list.map((r) => [r.id, ingredientMatches(r, filters.q)]));
   }
   const hasFilter = filters.q || filters.categoryId || filters.tagIds.length || filters.favorites;
 
@@ -57,7 +64,10 @@ export function recipesView({ query, rerender }) {
         <a class="icon-btn" href="#/rezepte" aria-label="Filter aufheben">${icon('x')}</a>
       </div>` : `
       <div class="search"><span class="search-ic">${icon('search')}</span>
-        <input id="recipeSearch" type="search" placeholder="Rezept oder Zutat suchen" value="${esc(filters.q)}" autocomplete="off"></div>
+        <input id="recipeSearch" type="search" placeholder="${SEARCH_MODES.find(([m]) => m === filters.searchIn)[2]}" value="${esc(filters.q)}" autocomplete="off" aria-describedby="searchIn"></div>
+      <div class="segment compact search-in" id="searchIn" role="radiogroup" aria-label="Suchen in">
+        ${SEARCH_MODES.map(([m, label]) => `<button type="button" role="radio" class="${filters.searchIn === m ? 'active' : ''}" aria-checked="${filters.searchIn === m}" data-search-in="${m}">${label}</button>`).join('')}
+      </div>
       <div class="chip-scroll" aria-label="Kategorie">
         <button type="button" class="chip${!filters.categoryId ? ' active' : ''}" data-cat="">Alle</button>
         ${categories.map((c) => `<button type="button" class="chip${filters.categoryId === c.id ? ' active' : ''}" data-cat="${c.id}">${esc(c.name)}</button>`).join('')}
@@ -104,6 +114,14 @@ export function recipesView({ query, rerender }) {
           const id = tag.dataset.tag;
           filters.tagIds = filters.tagIds.includes(id) ? filters.tagIds.filter((t) => t !== id) : [...filters.tagIds, id];
           rerender();
+          return;
+        }
+        const mode = e.target.closest('[data-search-in]');
+        if (mode) {
+          filters.searchIn = mode.dataset.searchIn;
+          try { localStorage.setItem(SEARCH_KEY, filters.searchIn); } catch (err) { /* privates Fenster */ }
+          rerender();
+          document.getElementById('recipeSearch')?.focus({ preventScroll: true });
           return;
         }
         if (e.target.closest('[data-fav]')) { filters.favorites = !filters.favorites; rerender(); return; }

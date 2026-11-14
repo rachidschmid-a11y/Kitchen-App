@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   parseIngredientLine, parseIngredients, ingredientsToText, formatAmount, formatQuantity,
   resolveIngredient, buildShoppingList, mergeGeneratedItems, combineShoppingItems, startOfWeek, toISODate, isoWeek,
-  formatWeekRange, pantryStatus, startOfPeriod, periodDates, formatPeriod, filterRecipes, nextFreeDay, minutesInStep, parseSteps,
+  formatWeekRange, pantryStatus, startOfPeriod, periodDates, formatPeriod, filterRecipes, ingredientMatches, nextFreeDay, minutesInStep, parseSteps,
 } from '../public/js/model.js';
 import { encodeRecipe, decodeRecipe } from '../public/js/share.js';
 
@@ -160,6 +160,22 @@ test('Rezepte filtern nach Kategorie, allen Tags und Suchtext', () => {
   assert.deepEqual(filterRecipes(recipes, { categoryId: 'main' }).map((r) => r.id), ['2', '1']);
   assert.deepEqual(filterRecipes(recipes, { tagIds: ['vegan', 'gf'] }).map((r) => r.id), ['1']);
   assert.deepEqual(filterRecipes(recipes, { q: 'kicher' }).map((r) => r.id), ['1']);
+});
+
+test('Suche wahlweise nur im Namen oder nur in den Zutaten', () => {
+  const recipes = [
+    { id: '1', title: 'Tomatensuppe', ingredients: [{ name: 'Zwiebel' }, { name: 'Tomaten aus der Dose' }] },
+    { id: '2', title: 'Ofengemüse mit Feta', ingredients: [{ name: 'Feta' }, { name: 'rote Paprika' }, { name: 'Tomate' }] },
+    { id: '3', title: 'Linsensalat', description: 'mit Feta', ingredients: [{ name: 'Berglinsen' }, { name: 'Paprika' }] },
+  ];
+  const ids = (opts) => filterRecipes(recipes, opts).map((r) => r.id);
+  assert.deepEqual(ids({ q: 'tomate', searchIn: 'name' }), ['1']);
+  assert.deepEqual(ids({ q: 'Tomaten', searchIn: 'ingredients' }), ['2', '1']);
+  assert.deepEqual(ids({ q: 'feta', searchIn: 'all' }), ['3', '2']);
+  assert.deepEqual(ids({ q: 'feta', searchIn: 'name' }), ['2']);
+  assert.deepEqual(ids({ q: 'Feta, Paprika', searchIn: 'ingredients' }), ['2']);
+  assert.deepEqual(ingredientMatches(recipes[1], 'feta, paprika'), ['Feta', 'rote Paprika']);
+  assert.equal(ingredientMatches(recipes[0], 'feta'), null);
 });
 
 test('Rezept-Link: hin und zurück ohne Verlust, Notiz nur auf Wunsch', async () => {

@@ -424,13 +424,31 @@ export function matchRecipesToItems(recipes, items, catalog) {
 
 // ---------- Rezepte filtern ----------
 
-export function filterRecipes(recipes, { q = '', categoryId = null, tagIds = [], favorites = false, sort = 'name' } = {}) {
+// Zutatensuche: mehrere Begriffe mit Komma („Feta, Paprika“) – jeder muss in einer Zutat vorkommen.
+// Liefert die gefundenen Zutaten oder null. „Tomaten“ findet auch „Tomate“ (Wortstamm).
+export function ingredientMatches(recipe, q) {
+  const terms = String(q).split(',').map((t) => singular(normalizeName(t))).filter(Boolean);
+  if (!terms.length) return [];
+  const names = (recipe.ingredients || []).map((i) => i.name).filter(Boolean);
+  const hits = [];
+  for (const term of terms) {
+    const found = names.filter((n) => normalizeName(n).includes(term));
+    if (!found.length) return null;
+    hits.push(...found);
+  }
+  return [...new Set(hits)];
+}
+
+// searchIn: 'all' = Name, Beschreibung und Zutaten · 'name' = nur Rezeptname · 'ingredients' = nur Zutaten
+export function filterRecipes(recipes, { q = '', searchIn = 'all', categoryId = null, tagIds = [], favorites = false, sort = 'name' } = {}) {
   const needle = normalizeName(q);
   let list = recipes.filter((r) => {
     if (categoryId && !(r.categoryIds || []).includes(categoryId)) return false;
     if (tagIds.some((t) => !(r.tagIds || []).includes(t))) return false;
     if (favorites && !r.favorite) return false;
     if (needle) {
+      if (searchIn === 'name') return normalizeName(r.title).includes(needle);
+      if (searchIn === 'ingredients') return ingredientMatches(r, q) !== null;
       const hay = normalizeName([r.title, r.description, ...(r.ingredients || []).map((i) => i.name)].join(' '));
       if (!hay.includes(needle)) return false;
     }

@@ -686,3 +686,7 @@ body.gated #view { margin-left: 0; padding: 0; }
 .ai-photos img { width: 100%; height: 100%; object-fit: cover; }
 .ai-photos .icon-btn { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; min-height: 0; padding: 0; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; }
 .ai-busy { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--ink-2); }
+
+/* Suche: worin gesucht wird */
+.search-in { align-self: flex-start; margin-top: -6px; }
+.search-in > button { padding: 0 14px; white-space: nowrap; flex: 0 0 auto; }
