@@ -193,6 +193,13 @@ export function setUhtMilk(uht) {
   });
 }
 
+// Geplante Rezepte ohne Zutaten – sie tauchen auf der Einkaufsliste nicht auf.
+export function plannedWithoutIngredients(which) {
+  const dates = periodDatesFor(which);
+  const ids = new Set(store.all('mealPlan').filter((e) => e.recipeId && !e.cooked && dates.includes(e.date)).map((e) => e.recipeId));
+  return [...ids].map((id) => store.get('recipes', id)).filter((r) => r && !(r.ingredients || []).length).map((r) => r.title);
+}
+
 // Einkaufsliste aus den geplanten Gerichten einer Woche (neu) erzeugen.
 export function generateShoppingList(which) {
   const dates = periodDatesFor(which);

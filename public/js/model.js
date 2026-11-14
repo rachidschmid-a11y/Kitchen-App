@@ -529,12 +529,21 @@ export function ingredientMatches(recipe, q) {
 }
 
 // searchIn: 'all' = Name, Beschreibung und Zutaten · 'name' = nur Rezeptname · 'ingredients' = nur Zutaten
-export function filterRecipes(recipes, { q = '', searchIn = 'all', categoryId = null, tagIds = [], favorites = false, sort = 'name' } = {}) {
+// Rezept nur als Name hinterlegt? Fehlen Zutaten und/oder Zubereitung, steht ein rotes ❗ als Erinnerung.
+export function recipeGaps(r) {
+  const noIngredients = !(r.ingredients || []).length;
+  const noSteps = !(r.steps || []).length;
+  const what = noIngredients && noSteps ? 'Zutaten und Zubereitung' : noIngredients ? 'Zutaten' : noSteps ? 'Zubereitung' : '';
+  return { noIngredients, noSteps, incomplete: noIngredients || noSteps, what };
+}
+
+export function filterRecipes(recipes, { q = '', searchIn = 'all', categoryId = null, tagIds = [], favorites = false, incomplete = false, sort = 'name' } = {}) {
   const needle = normalizeName(q);
   let list = recipes.filter((r) => {
     if (categoryId && !(r.categoryIds || []).includes(categoryId)) return false;
     if (tagIds.some((t) => !(r.tagIds || []).includes(t))) return false;
     if (favorites && !r.favorite) return false;
+    if (incomplete && !recipeGaps(r).incomplete) return false;
     if (needle) {
       if (searchIn === 'name') return normalizeName(r.title).includes(needle);
       if (searchIn === 'ingredients') return ingredientMatches(r, q) !== null;

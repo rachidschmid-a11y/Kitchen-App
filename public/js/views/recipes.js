@@ -3,14 +3,14 @@ import { store } from '../store.js';
 import { me } from '../members.js';
 import { icon } from '../icons.js';
 import { esc, deNum, photoHtml, tagsById, minutesLabel, todayIso } from '../ui.js';
-import { filterRecipes, totalMinutes, pantryStatus, matchRecipesToItems, ingredientMatches } from '../model.js';
+import { filterRecipes, totalMinutes, pantryStatus, matchRecipesToItems, ingredientMatches, recipeGaps } from '../model.js';
 
 // Worin gesucht wird, merkt sich jedes Gerät.
 const SEARCH_KEY = 'rezepte-app/suche-in';
 const SEARCH_MODES = [['all', 'Name & Zutaten', 'Rezept oder Zutat suchen'], ['name', 'Name', 'Rezeptname suchen'], ['ingredients', 'Zutaten', 'Zutat suchen, z. B. Feta, Paprika']];
 const savedMode = (() => { try { return localStorage.getItem(SEARCH_KEY); } catch (e) { return null; } })();
 
-const filters = { q: '', searchIn: SEARCH_MODES.some(([m]) => m === savedMode) ? savedMode : 'all', categoryId: null, tagIds: [], favorites: false, sort: 'name' };
+const filters = { q: '', searchIn: SEARCH_MODES.some(([m]) => m === savedMode) ? savedMode : 'all', categoryId: null, tagIds: [], favorites: false, incomplete: false, sort: 'name' };
 
 const SORTS = [['name', 'Name'], ['recent', 'Zuletzt gekocht'], ['rating', 'Bewertung'], ['time', 'Schnellste'], ['new', 'Neueste']];
 
@@ -19,7 +19,7 @@ function tile(r, matches) {
   const meta = [time ? minutesLabel(time) : '', r.rating ? `★ ${deNum(r.rating)}` : ''].filter(Boolean).join(' · ');
   return `
     <a class="tile" href="#/rezept/${r.id}">
-      <div class="tile-photo">${photoHtml(r)}${r.favorite ? `<span class="tile-fav" aria-label="Favorit">${icon('heart')}</span>` : ''}</div>
+      <div class="tile-photo">${photoHtml(r)}${recipeGaps(r).incomplete ? `<span class="tile-incomplete unsure-btn static" title="${esc(recipeGaps(r).what)} fehlen noch" aria-label="${esc(recipeGaps(r).what)} fehlen noch">!</span>` : ''}${r.favorite ? `<span class="tile-fav" aria-label="Favorit">${icon('heart')}</span>` : ''}</div>
       <div class="tile-body">
         <h3>${esc(r.title)}</h3>
         ${meta ? `<p class="tile-meta mono">${meta}</p>` : ''}
@@ -47,7 +47,9 @@ export function recipesView({ query, rerender }) {
     // Bei der Zutatensuche zeigt jede Kachel, welche Zutaten gefunden wurden.
     if (filters.searchIn === 'ingredients' && filters.q.trim()) matchMap = new Map(list.map((r) => [r.id, ingredientMatches(r, filters.q)]));
   }
-  const hasFilter = filters.q || filters.categoryId || filters.tagIds.length || filters.favorites;
+  const hasFilter = filters.q || filters.categoryId || filters.tagIds.length || filters.favorites || filters.incomplete;
+  const incompleteCount = store.all('recipes').filter((r) => recipeGaps(r).incomplete).length;
+  if (!incompleteCount) filters.incomplete = false;
 
   const html = `
     <header class="page-head">
@@ -74,6 +76,7 @@ export function recipesView({ query, rerender }) {
       </div>
       <div class="chip-scroll" aria-label="Tags">
         <button type="button" class="tag-filter${filters.favorites ? ' active' : ''}" data-fav>${filters.favorites ? icon('check') : icon('heart')} Favoriten</button>
+        ${incompleteCount ? `<button type="button" class="tag-filter tone-rose${filters.incomplete ? ' active' : ''}" data-incomplete aria-pressed="${filters.incomplete}">${filters.incomplete ? icon('check') : '<span class="unsure-btn static mini">!</span>'} Unvollständig <span class="mono">${incompleteCount}</span></button>` : ''}
         ${tags.map((t) => {
           const on = filters.tagIds.includes(t.id);
           return `<button type="button" class="tag-filter tone-${t.tone}${on ? ' active' : ''}" data-tag="${t.id}" aria-pressed="${on}">${on ? icon('check') : ''}${esc(t.name)}</button>`;
@@ -125,7 +128,8 @@ export function recipesView({ query, rerender }) {
           return;
         }
         if (e.target.closest('[data-fav]')) { filters.favorites = !filters.favorites; rerender(); return; }
-        if (e.target.closest('[data-clear]')) { Object.assign(filters, { q: '', categoryId: null, tagIds: [], favorites: false }); rerender(); }
+        if (e.target.closest('[data-incomplete]')) { filters.incomplete = !filters.incomplete; rerender(); return; }
+        if (e.target.closest('[data-clear]')) { Object.assign(filters, { q: '', categoryId: null, tagIds: [], favorites: false, incomplete: false }); rerender(); }
       });
     },
   };

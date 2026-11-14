@@ -4,7 +4,7 @@ import { icon } from '../icons.js';
 import {
   esc, stars, photoHtml, tagChip, tagsById, minutesLabel, daysAgoLabel, toast, openDialog, confirmDialog, todayIso,
 } from '../ui.js';
-import { groupBySection, formatQuantity, resolveIngredient, isInPantry, minutesInStep } from '../model.js';
+import { groupBySection, formatQuantity, resolveIngredient, isInPantry, minutesInStep, recipeGaps } from '../model.js';
 import { openPlanDialog, addRecipeToShopping, markCooked } from '../actions.js';
 import { navigate } from '../main.js';
 import { avatar, memberName, meId } from '../members.js';
@@ -85,6 +85,9 @@ export function recipeView({ params, rerender }) {
       ${recipe.by && memberName(recipe.by) ? `<p class="by-line">${avatar(recipe.by, 'mini')} angelegt von ${esc(memberName(recipe.by))}</p>` : ''}
       ${recipe.source ? `<p class="source">${icon('link')} ${isUrl ? `<a href="${esc(recipe.source)}" target="_blank" rel="noopener">${esc(new URL(recipe.source).hostname)}</a>` : esc(recipe.source)}</p>` : ''}
     </article>
+
+    ${recipeGaps(recipe).incomplete ? `<a class="banner danger" href="#/rezept/${recipe.id}/bearbeiten">
+      <span class="unsure-btn static" aria-hidden="true">!</span><div><b>Noch nicht fertig</b><span>${recipeGaps(recipe).what} fehlen noch – antippen zum Ergänzen.</span></div>${icon('chevronRight')}</a>` : ''}
 
     <div class="detail-cols">
       <section class="card">

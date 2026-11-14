@@ -39,12 +39,13 @@ Deployment.
 8. [Setup Schritt 3: Lokale Entwicklung](#setup-schritt-3-lokale-entwicklung)
 9. [Setup Schritt 4: Deployment auf Firebase Hosting](#setup-schritt-4-deployment-auf-firebase-hosting)
 10. [Rezepte importieren](#rezepte-importieren)
-11. [Konfiguration](#konfiguration)
-12. [Tests](#tests)
-13. [Datenbank-Schema](#datenbank-schema)
-14. [Troubleshooting](#troubleshooting)
-15. [Sicherheitshinweise](#sicherheitshinweise)
-16. [Lizenz](#lizenz)
+11. [Einkaufsliste und Abteilungen](#einkaufsliste-und-abteilungen)
+12. [Konfiguration](#konfiguration)
+13. [Tests](#tests)
+14. [Datenbank-Schema](#datenbank-schema)
+15. [Troubleshooting](#troubleshooting)
+16. [Sicherheitshinweise](#sicherheitshinweise)
+17. [Lizenz](#lizenz)
 
 ---
 
@@ -52,12 +53,13 @@ Deployment.
 
 | Bereich | Funktionen |
 |---|---|
-| 📖 **Rezepte** | Kacheln mit Foto, Zeit, Bewertung und Tags; Suche nach Titel **und Zutat**; Filter nach Kategorie, Tags und Favoriten; Sortierung nach Name, zuletzt gekocht, Bewertung, Dauer oder neueste; Hinweis „Bald verbrauchen“ mit passenden Rezepten |
+| 📖 **Rezepte** | Kacheln mit Foto, Zeit, Bewertung und Tags; Suche **wahlweise nach Name, nach Zutaten oder nach beidem** (bei Zutaten auch mehrere mit Komma: „Feta, Paprika“); Filter nach Kategorie, Tags, Favoriten und „Unvollständig“; **rotes Ausrufezeichen** bei Rezepten, die nur als Name angelegt sind (Zutaten und/oder Zubereitung fehlen noch) – auch im Wochenplan, mit Warnung beim Erzeugen der Einkaufsliste; Sortierung nach Name, zuletzt gekocht, Bewertung, Dauer oder neueste; Hinweis „Bald verbrauchen“ mit passenden Rezepten |
 | 🍳 **Rezeptseite** | Portionen umrechnen (Mengen passen sich an), Zutaten in Abschnitten („Für den Teig“), Zubereitung in Schritten, „angelegt von …“, „zuletzt gekocht vor …“, Zutaten abhaken, Hinweis „im Vorrat“ |
 | 👩‍🍳 **Kochmodus** | Ein Schritt pro Bildschirm in großer Schrift, Zutaten und Notizen einblendbar, **Timer** aus Zeitangaben im Schritt, Bildschirm bleibt an |
 | 📝 **Notizen** | Pro Rezept eine datierte Liste „Unsere Notizen“ für Änderungen und Extra-Schritte – mit Person und Datum, auch im Kochmodus sichtbar |
 | 🗓️ **Wochenplan** | Planungszeitraum frei wählbar (Starttag und 3–10 Tage, z. B. Freitag bis Freitag); Rezepte oder freie Einträge („Grillen bei Freunden“) je Tag und Mahlzeit; **Merkzettel** für Ideen und für die nächste Woche; „gekocht“ abhaken |
-| 🛒 **Einkaufsliste** | **Automatisch aus dem Wochenplan**: gleiche Zutaten werden zusammengefasst und umgerechnet, nach Supermarkt-Abteilungen sortiert (Reihenfolge einstellbar); „Wahrscheinlich schon da“ für Zutaten aus dem Vorrat; **Standard-Einkäufe** mit einem Tipp; „abgehakt von …“; Erledigtes in den Vorrat übernehmen |
+| 🛒 **Einkaufsliste** | **Automatisch aus dem Wochenplan**: gleiche Zutaten werden zusammengefasst und umgerechnet (auch „rote“ und „gelbe“ Paprika oder „frische“ und „glatte“ Petersilie), **Abteilungen werden automatisch erkannt** und nach Supermarkt-Reihenfolge sortiert (einstellbar; Milch wahlweise **frisch (Kühlregal) oder als H-Milch (Regal)**); „Wahrscheinlich schon da“ für Zutaten aus dem Vorrat; **Standard-Einkäufe** mit einem Tipp; „abgehakt von …“; Erledigtes in den Vorrat übernehmen |
+| 🏷️ **Zutaten einsortieren** | Die App ordnet fast jede Zutat selbst einer Abteilung zu (Fleisch, Milchprodukte, Gemüse, Gewürze, Konserven, Tiefkühl …). Ist sie unsicher, erscheint ein **rotes Ausrufezeichen** – antippen, Abteilung wählen, die Antwort gilt für den ganzen Haushalt und für ähnliche Namen. Hinweis nach Import und Speichern; Seite **„Zutaten prüfen“** zeigt alle unklaren Zutaten; Grundvorrat (Wasser, Salz, Öl …) steht unter „Wahrscheinlich schon da“ |
 | 🧺 **Vorrat** | Lebensmittel nach Kühlschrank, Tiefkühler und Speisekammer; Haltbarkeitsdatum mit „morgen“, „in 2 Tagen“; **Bald verbrauchen** markieren und passende Rezepte finden |
 | 📸 **Rezepte importieren** | **Foto auslesen** – Kochbuchseite, Rezeptkarte oder Handschrift fotografieren, [Gemini](#rezepte-importieren) liest das Rezept (auch mehrere Seiten oder mehrere Rezepte auf einmal, fremdsprachige werden übersetzt, Unleserliches wird markiert statt geraten); **Text einfügen** (Webseite, Instagram, WhatsApp); **KI-Chat** für Links und Videos; **JSON-Datei** für viele Rezepte auf einmal |
 | 🔗 **Teilen & PDF** | Rezept als Link teilen – Empfänger sehen nur dieses Rezept, können Portionen umrechnen und es als PDF speichern; ohne Anmeldung, ohne Server |
@@ -73,7 +75,7 @@ Deployment.
 ## So sieht die App aus
 
 > Alle Inhalte auf den Bildern sind **erfundene Beispieldaten**: zwei
-> Demo-Personen „Alex“ und „Sam“ und zehn einfache Beispielrezepte. Die Bilder
+> Demo-Personen „Alex“ und „Sam“ und zwölf einfache Beispielrezepte (zwei davon nur mit Namen, um die Markierung für unfertige Rezepte zu zeigen). Die Bilder
 > stammen aus der lokalen Testumgebung (Firebase Emulator), nicht aus einer
 > echten Installation. Die Rezepte haben bewusst keine Fotos – an ihrer Stelle
 > zeigt die App einen Platzhalter.
@@ -94,6 +96,16 @@ Rezepten.
     <td align="center" width="25%"><img src="docs/screenshots/handy-rezept.png" alt="Rezeptseite auf dem Handy" width="200"><br><sub><b>Rezept</b> – Portionen umrechnen, Foto hinzufügen</sub></td>
     <td align="center" width="25%"><img src="docs/screenshots/handy-notizen.png" alt="Notizen zu einem Rezept" width="200"><br><sub><b>Unsere Notizen</b> – datiert, mit Person</sub></td>
     <td align="center" width="25%"><img src="docs/screenshots/handy-kochmodus.png" alt="Kochmodus mit einem Schritt pro Bildschirm" width="200"><br><sub><b>Kochmodus</b> – ein Schritt pro Bildschirm</sub></td>
+  </tr>
+</table>
+
+### Unfertige Rezepte und unklare Zutaten
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/screenshots/handy-unvollstaendig.png" alt="Rezept nur mit Namen: roter Hinweis" width="240"><br><sub><b>Noch nicht fertig</b> – nur der Name ist da, ein roter Hinweis erinnert ans Ergänzen</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/handy-nachfrage.png" alt="Nachfrage: Wo steht das im Supermarkt?" width="240"><br><sub><b>Nachfrage</b> – bei unsicheren Zutaten wählt ihr die Abteilung, die App merkt sie sich</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/handy-zutaten-pruefen.png" alt="Seite Zutaten prüfen" width="240"><br><sub><b>Zutaten prüfen</b> – alle unklaren Zutaten auf einen Blick</sub></td>
   </tr>
 </table>
 
@@ -172,13 +184,16 @@ Der Wochenplan für den eingestellten Zeitraum. Ein Tipp auf
 │       ├── firebase-config.js     lädt die Zugangsdaten (Hosting oder lokale Datei)
 │       ├── cloud.js               Abgleich mit Firestore, Fotos in Firestore
 │       ├── store.js               Datenstand im Speicher (all/get/add/update/remove)
+│       ├── aisles.js              Abteilung einer Zutat aus dem Namen erkennen (Regeln, Sicherheit, Grundvorrat)
+│       ├── aisle-ask.js           Nachfrage „Wo steht das im Supermarkt?“, rotes Ausrufezeichen
+│       ├── firestore-safe.js      Feldnamen, die Firestore ablehnt (z. B. leer), umschreiben
 │       ├── model.js               reine Logik: Zutaten, Mengen, Einkaufsliste, Zeiträume
 │       ├── ai-import.js           Rezeptfotos mit Gemini auslesen
 │       ├── recipe-text.js         Rezepttext erkennen (Text-Import)
 │       ├── exchange.js, importer.js   Austauschformat, Import/Export
 │       ├── image.js, photos.js    Fotos verkleinern und speichern
 │       ├── theme.js               Farbschemata
-│       └── views/                 Rezepte, Rezept, Formular, Plan, Einkauf, Vorrat, Mehr …
+│       └── views/                 Rezepte, Rezept, Formular, Plan, Einkauf, Vorrat, Mehr, Zutaten prüfen …
 └── tests/                         Unit-Tests und Regeltests
 ```
 
@@ -319,6 +334,18 @@ eingesendete Inhalte zur Verbesserung der Dienste verwendet werden.
 
 ---
 
+## Einkaufsliste und Abteilungen
+
+Die Einkaufsliste wird aus dem Wochenplan erzeugt. Damit nicht alles unter „Sonstiges“ landet, bekommt jede Zutat ihre Abteilung in dieser Reihenfolge:
+
+1. **Katalog des Haushalts** – was ihr einmal zugeordnet oder bestätigt habt, gilt immer zuerst (auch für Varianten wie „rote Paprika“ → Paprika).
+2. **Regeln aus dem Namen** (`public/js/aisles.js`) – z. B. „Hackfleisch“ → Fleisch & Fisch, „Paprikapulver“ → Gewürze, „Kokosmilch“ → Konserven, Hefe im Würfel → Kühlregal.
+3. **Unsicher** – bei sehr allgemeinen Wörtern („Gemüse“, „Mais“, „Bohnen“) oder wenn keine Regel passt, markiert die App die Zutat mit einem roten Ausrufezeichen und fragt nach. Die Antwort kommt in den Katalog.
+
+Der **Grundvorrat** (Wasser, Backpapier, Salz, Öl, gängige Gewürze) steht unter „Wahrscheinlich schon da“ und lässt sich mit „Kaufen“ trotzdem auf die Liste holen. Wo Milch steht, bestimmt eine Einstellung: **Frische Milch** (Kühlregal) oder **H-Milch** (Trockenwaren/Regal).
+
+---
+
 ## Konfiguration
 
 | Was | Wo |
@@ -328,6 +355,8 @@ eingesendete Inhalte zur Verbesserung der Dienste verwendet werden.
 | Haushalts-Dokument | `HOUSEHOLD_ID` in `public/js/firebase.js` (Standard `kueche`) |
 | Gemini-Modell | `MODELS` in `public/js/ai-import.js` (neuestes Flash-Modell, dann Rückfall) |
 | Planungszeitraum, Mahlzeiten, Kategorien, Tags, Abteilungen, Standard-Einkäufe | in der App unter *Mehr* (gilt für alle) |
+| Milch: frisch (Kühlregal) oder H-Milch (Regal) | in der App unter *Mehr → Abteilungen*, `settings.uhtMilk` (gilt für alle) |
+| Regeln zur Abteilungs-Erkennung | `public/js/aisles.js` (`RULES`, `VAGUE` für „unsicher“, `LEADING` für Beiwörter) |
 | Farbschema und Helligkeit | in der App unter *Mehr* (gilt pro Gerät) |
 | Grundeinrichtung für neue Haushalte | `public/js/seed.js` |
 | Foto-Komprimierung | `public/js/image.js` (längste Seite 1280 px, Ziel ca. 50–190 KB) |
@@ -337,8 +366,8 @@ eingesendete Inhalte zur Verbesserung der Dienste verwendet werden.
 ## Tests
 
 ```bash
-npm test             # Kernlogik: Zutaten zerlegen, Mengen, Einkaufsliste, Zeiträume,
-                     # Text- und Foto-Import, Austauschformat, Fotos, App-Hülle
+npm test             # Kernlogik: Zutaten zerlegen, Mengen, Einkaufsliste, Abteilungs-Erkennung, Zeiträume,
+                     # Text- und Foto-Import, Austauschformat, Fotos, Suche, App-Hülle
 npm run test:rules   # Zugriffsregeln gegen den Firestore-Emulator
 ```
 
@@ -361,13 +390,14 @@ households/kueche/mealPlan/{id}       date, slot, recipeId | note, servings, coo
 households/kueche/planInbox/{id}      recipeId | note, servings   (Merkzettel)
 households/kueche/shoppingItems/{id}  key, name, amountText, aisle, source, checked, checkedBy
 households/kueche/pantry/{id}         name, amount, location, expiresAt, useSoon
-households/kueche/categories|tags|staples|catalog/{id}
+households/kueche/catalog/{id}           name, aisle, synonyms[], basic   (Zutaten-Katalog: eure Zuordnungen)
+households/kueche/categories|tags|staples/{id}
 households/kueche/photos/{id}         full, thumb (Bytes), Typ, Größe
 ```
 
 `settings` enthält Haushaltsname, Personen (Anzeigename, Farbe, verknüpftes
-Google-Konto), Mahlzeiten, Planungszeitraum und die Reihenfolge der
-Abteilungen. Die App hält den Stand im Speicher und schreibt nach jeder
+Google-Konto), Mahlzeiten, Planungszeitraum, die Reihenfolge der
+Abteilungen und die Milch-Einstellung (`uhtMilk`). Die App hält den Stand im Speicher und schreibt nach jeder
 Änderung nur die geänderten Dokumente.
 
 ---
@@ -382,6 +412,7 @@ Abteilungen. Die App hält den Stand im Speicher und schreibt nach jeder
 | „Gemini ist noch nicht eingeschaltet“ | AI Logic in der Konsole aktivieren (Setup Schritt 1.5); danach ein paar Minuten warten |
 | „Kontingent aufgebraucht“ | Tageslimit des kostenlosen Tarifs erreicht – später erneut oder den Weg „Link, Video“ nutzen |
 | Nach einem Update alte Version | Seite einmal neu laden; der Service Worker holt die neue Version |
+| Eine Zutat steht in der falschen Abteilung | Rotes Ausrufezeichen oder die Zeile antippen und die Abteilung wählen – die App merkt es sich für alle. Fehlt eine Regel allgemein, in `public/js/aisles.js` ergänzen (mit Test in `tests/aisles.test.js`) |
 | Pop-up für die Anmeldung blockiert | Pop-ups für die Seite erlauben |
 
 ---

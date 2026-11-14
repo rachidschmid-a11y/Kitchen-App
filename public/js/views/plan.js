@@ -2,9 +2,9 @@
 import { store } from '../store.js';
 import { icon } from '../icons.js';
 import { esc, photoHtml, openDialog, toast, todayIso } from '../ui.js';
-import { isoWeek, formatPeriod, weekdayShort, parseISODate, formatDayLong } from '../model.js';
+import { isoWeek, formatPeriod, weekdayShort, parseISODate, formatDayLong, recipeGaps } from '../model.js';
 import {
-  periodStartFor, periodDatesFor, planSettings, activeSlots, openPlanDialog, openRecipePicker, activateInbox, generateShoppingList, entryTitle, markCooked,
+  periodStartFor, periodDatesFor, planSettings, activeSlots, openPlanDialog, openRecipePicker, activateInbox, generateShoppingList, entryTitle, markCooked, plannedWithoutIngredients,
 } from '../actions.js';
 import { navigate } from '../main.js';
 import { avatar, members, memberName } from '../members.js';
@@ -18,7 +18,7 @@ function entryCard(e, { past }) {
   }
   return `<div class="entry${e.cooked ? ' cooked' : ''}">
     <a class="entry-link" href="#/rezept/${r.id}">${photoHtml(r, 'entry-thumb')}
-      <span class="entry-text"><span class="entry-title">${esc(r.title)}</span>
+      <span class="entry-text"><span class="entry-title">${recipeGaps(r).incomplete ? `<span class="unsure-btn static mini" title="${esc(recipeGaps(r).what)} fehlen noch" aria-label="${esc(recipeGaps(r).what)} fehlen noch">!</span> ` : ''}${esc(r.title)}</span>
       <span class="entry-meta mono">${e.servings || r.servings} Port.${e.cooked ? ' · gekocht' : ''}${members().length > 1 && e.by ? avatar(e.by, 'mini') : ''}</span></span></a>
     <button type="button" class="check-btn${e.cooked ? ' on' : ''}" data-cooked="${e.id}" aria-pressed="${!!e.cooked}" aria-label="Gekocht" title="${past || e.cooked ? 'Gekocht' : 'Als gekocht markieren'}">${icon('check')}</button>
     <button type="button" class="icon-btn" data-entry-menu="${e.id}" aria-label="Optionen">${icon('more')}</button>
@@ -126,6 +126,8 @@ export function planView({ params }) {
           const n = generateShoppingList(which);
           if (!n) { toast('In dieser Woche sind keine offenen Rezepte geplant.'); return; }
           toast(`Einkaufsliste aktualisiert: ${n} Zutaten aus dem Plan`);
+          const empty = plannedWithoutIngredients(which);
+          if (empty.length) setTimeout(() => toast(`Noch keine Zutaten: ${empty.join(', ')}`), 700);
           navigate('einkauf');
         }
       });

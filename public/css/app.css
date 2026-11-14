@@ -707,3 +707,9 @@ body.gated #view { margin-left: 0; padding: 0; }
 .ing .unsure-btn { margin-left: 6px; }
 .shop-item .unsure-btn { margin-right: 6px; }
 a.banner { text-decoration: none; color: inherit; }
+
+/* Rezept ohne Zutaten/Zubereitung */
+.unsure-btn.mini { width: 16px; height: 16px; min-width: 16px; padding: 0; font-size: 11px; line-height: 16px; border-radius: 50%; vertical-align: middle; }
+.tile-incomplete { position: absolute; top: 8px; left: 8px; z-index: 1; width: 28px; height: 28px; line-height: 28px; font-size: 16px; padding: 0; border-radius: 50%; box-shadow: var(--shadow-sm); }
+.banner.danger { background: var(--danger-soft); color: var(--danger); text-decoration: none; }
+.banner.danger > div span { color: var(--ink-2); }

@@ -4,7 +4,7 @@ import { icon } from '../icons.js';
 import { esc, openDialog, toast, confirmDialog } from '../ui.js';
 import { AISLES } from '../seed.js';
 import { parseIngredientLine, formatQuantity, isInPantry, resolveIngredient, toISODate, combineShoppingItems } from '../model.js';
-import { addShoppingItem, setStapleOnList, learnAisle, generateShoppingList, periodStartFor } from '../actions.js';
+import { addShoppingItem, setStapleOnList, learnAisle, generateShoppingList, periodStartFor, plannedWithoutIngredients } from '../actions.js';
 import { meId, memberName } from '../members.js';
 import { askAisle, classify, unsureButton } from '../aisle-ask.js';
 
@@ -73,7 +73,7 @@ export function shoppingView() {
     </header>
 
     ${unsure.length ? `<a class="banner gold" href="#/zutaten">
-      ${icon('cart')}<div><b>${unsure.length} ${unsure.length === 1 ? 'Artikel' : 'Artikel'} ohne sichere Abteilung</b><span>Mit ❗ markiert – antippen und zuordnen</span></div>${icon('chevronRight')}</a>` : ''}
+      ${icon('cart')}<div><b>${unsure.length} ${unsure.length === 1 ? 'Artikel' : 'Artikel'} ohne sichere Abteilung</b><span>Mit rotem Ausrufezeichen markiert – antippen und zuordnen</span></div>${icon('chevronRight')}</a>` : ''}
 
     <form class="add-bar" data-add-form>
       <input id="shopAdd" placeholder="Artikel hinzufügen, z. B. „2 Gurken“" autocomplete="off" enterkeyhint="done">
@@ -150,6 +150,8 @@ export function shoppingView() {
           const n = generateShoppingList(planWeek);
           const label = planWeek === 'next' ? 'nächster Woche' : 'dieser Woche';
           toast(n ? `${n} Zutaten aus ${label}` : `In ${label} sind keine offenen Rezepte geplant.`);
+          const empty = plannedWithoutIngredients(planWeek);
+          if (empty.length) setTimeout(() => toast(`Noch keine Zutaten: ${empty.join(', ')}`), 700);
         }
         if (e.target.closest('[data-clear]')) {
           store.setAll('shoppingItems', store.all('shoppingItems').filter((i) => !i.checked));

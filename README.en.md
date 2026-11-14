@@ -37,12 +37,13 @@ instance – access rules, local development and deployment.
 8. [Setup step 3: Local development](#setup-step-3-local-development)
 9. [Setup step 4: Deploy to Firebase Hosting](#setup-step-4-deploy-to-firebase-hosting)
 10. [Importing recipes](#importing-recipes)
-11. [Configuration](#configuration)
-12. [Tests](#tests)
-13. [Database schema](#database-schema)
-14. [Troubleshooting](#troubleshooting)
-15. [Security notes](#security-notes)
-16. [License](#license)
+11. [Shopping list and aisles](#shopping-list-and-aisles)
+12. [Configuration](#configuration)
+13. [Tests](#tests)
+14. [Database schema](#database-schema)
+15. [Troubleshooting](#troubleshooting)
+16. [Security notes](#security-notes)
+17. [License](#license)
 
 ---
 
@@ -50,12 +51,13 @@ instance – access rules, local development and deployment.
 
 | Area | What it does |
 |---|---|
-| 📖 **Recipes** | Tiles with photo, time, rating and tags; search by title **and ingredient**; filter by category, tags and favourites; sort by name, last cooked, rating, duration or newest; "use soon" hint with matching recipes |
+| 📖 **Recipes** | Tiles with photo, time, rating and tags; search **by name, by ingredient or both** (several ingredients with commas: “feta, pepper”); filter by category, tags, favourites and “incomplete”; a **red exclamation mark** on recipes saved with a name only (ingredients and/or steps still missing) – also in the meal plan, with a warning when generating the shopping list; sort by name, last cooked, rating, duration or newest; "use soon" hint with matching recipes |
 | 🍳 **Recipe page** | Scale servings (amounts adjust), ingredient sections ("for the dough"), numbered steps, "added by …", "last cooked … ago", tick off ingredients, "in the pantry" hint |
 | 👩‍🍳 **Cooking mode** | One step per screen in large type, ingredients and notes on demand, **timers** from times mentioned in a step, screen stays on |
 | 📝 **Notes** | A dated "our notes" list per recipe for changes and extra steps – with person and date, also visible while cooking |
 | 🗓️ **Meal plan** | Any planning period (start day and 3–10 days, e.g. Friday to Friday); recipes or free entries per day and meal; a **"for later" list** for ideas and next week; mark meals as cooked |
-| 🛒 **Shopping list** | **Generated from the meal plan**: identical ingredients are merged and converted, sorted by supermarket aisle (order adjustable); "probably at home" for pantry items; **staples** with one tap; "ticked off by …"; move bought items to the pantry |
+| 🛒 **Shopping list** | **Generated from the meal plan**: identical ingredients are merged and converted (also “red” and “yellow” pepper, “fresh” and “flat-leaf” parsley), **aisles are detected automatically** and sorted in supermarket order (adjustable; milk either **fresh (chilled) or UHT (shelf)**); "probably at home" for pantry items; **staples** with one tap; "ticked off by …"; move bought items to the pantry |
+| 🏷️ **Sorting ingredients** | The app assigns almost every ingredient to an aisle itself (meat, dairy, vegetables, spices, tins, frozen …). When it is unsure, a **red exclamation mark** appears – tap it, pick the aisle, and the answer applies to the whole household and to similar names. A hint after import and save; a **“check ingredients”** page lists everything unclear; pantry staples (water, salt, oil …) appear under “probably at home” |
 | 🧺 **Pantry** | Food by fridge, freezer and cupboard; best-before with "tomorrow", "in 2 days"; mark **use soon** and find matching recipes |
 | 📸 **Recipe import** | **Read a photo** – photograph a cookbook page, recipe card or handwriting and [Gemini](#importing-recipes) extracts the recipe (several pages or several recipes at once, foreign recipes are translated, unreadable parts are flagged instead of guessed); **paste text** (websites, Instagram, WhatsApp); **AI chat** for links and videos; **JSON file** for many recipes at once |
 | 🔗 **Sharing & PDF** | Share a recipe as a link – recipients see only that recipe, can scale servings and save it as PDF; no sign-in, no server |
@@ -71,7 +73,7 @@ instance – access rules, local development and deployment.
 ## Screenshots
 
 > Everything shown is **made-up sample data**: two demo people "Alex" and
-> "Sam" and ten simple sample recipes. The pictures come from the local test
+> "Sam" and twelve simple sample recipes (two of them with a name only, to show the marker for unfinished recipes). The pictures come from the local test
 > environment (Firebase Emulator), not from a real installation. The recipes
 > intentionally have no photos – the app shows a placeholder instead.
 
@@ -87,6 +89,16 @@ instance – access rules, local development and deployment.
     <td align="center" width="25%"><img src="docs/screenshots/handy-rezept.png" alt="Recipe page on a phone" width="200"><br><sub><b>Recipe</b> – scale servings, add a photo</sub></td>
     <td align="center" width="25%"><img src="docs/screenshots/handy-notizen.png" alt="Notes on a recipe" width="200"><br><sub><b>Our notes</b> – dated, with person</sub></td>
     <td align="center" width="25%"><img src="docs/screenshots/handy-kochmodus.png" alt="Cooking mode" width="200"><br><sub><b>Cooking mode</b> – one step per screen</sub></td>
+  </tr>
+</table>
+
+### Unfinished recipes and unclear ingredients
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/screenshots/handy-unvollstaendig.png" alt="Recipe with a name only: red notice" width="240"><br><sub><b>Not finished yet</b> – only the name exists; a red notice reminds you to complete it</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/handy-nachfrage.png" alt="Question: where is this in the supermarket?" width="240"><br><sub><b>Question</b> – for unsure ingredients you pick the aisle and the app remembers it</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/handy-zutaten-pruefen.png" alt="Check ingredients page" width="240"><br><sub><b>Check ingredients</b> – everything unclear at a glance</sub></td>
   </tr>
 </table>
 
@@ -160,13 +172,16 @@ instance – access rules, local development and deployment.
 │       ├── firebase-config.js     loads the config (Hosting or local file)
 │       ├── cloud.js               sync with Firestore, photos in Firestore
 │       ├── store.js               in-memory data (all/get/add/update/remove)
+│       ├── aisles.js              detect an ingredient's aisle from its name (rules, confidence, pantry staples)
+│       ├── aisle-ask.js           “where is this in the supermarket?” question, red exclamation mark
+│       ├── firestore-safe.js      rewrite field names Firestore rejects (e.g. empty ones)
 │       ├── model.js               pure logic: ingredients, amounts, shopping list, periods
 │       ├── ai-import.js           read recipe photos with Gemini
 │       ├── recipe-text.js         recognise pasted recipe text
 │       ├── exchange.js, importer.js   exchange format, import/export
 │       ├── image.js, photos.js    compress and store photos
 │       ├── theme.js               colour schemes
-│       └── views/                 recipes, recipe, form, plan, shopping, pantry, settings …
+│       └── views/                 recipes, recipe, form, plan, shopping, pantry, settings, check ingredients …
 └── tests/                         unit tests and rules tests
 ```
 
@@ -297,6 +312,18 @@ content sent there may be used to improve Google's services.
 
 ---
 
+## Shopping list and aisles
+
+The shopping list is generated from the meal plan. So that not everything ends up under “Sonstiges”, each ingredient gets its aisle in this order:
+
+1. **The household catalogue** – whatever you assigned or confirmed once always wins (also for variants such as “red pepper” → pepper).
+2. **Rules based on the name** (`public/js/aisles.js`) – e.g. “mince” → meat & fish, “paprika powder” → spices, “coconut milk” → tins, fresh yeast cube → chilled.
+3. **Unsure** – for very generic words (“vegetables”, “corn”, “beans”) or when no rule matches, the app marks the ingredient with a red exclamation mark and asks. Your answer goes into the catalogue.
+
+**Pantry staples** (water, baking paper, salt, oil, common spices) appear under “probably at home” and can still be added with “Kaufen”. Where milk goes is a setting: **fresh milk** (chilled) or **UHT milk** (shelf/dry goods).
+
+---
+
 ## Configuration
 
 | What | Where |
@@ -306,6 +333,8 @@ content sent there may be used to improve Google's services.
 | Household document | `HOUSEHOLD_ID` in `public/js/firebase.js` (default `kueche`) |
 | Gemini model | `MODELS` in `public/js/ai-import.js` (latest Flash model, then fallback) |
 | Planning period, meals, categories, tags, aisles, staples | in the app under *Mehr* (shared) |
+| Milk: fresh (chilled) or UHT (shelf) | in the app under *Mehr → Abteilungen*, `settings.uhtMilk` (shared) |
+| Aisle detection rules | `public/js/aisles.js` (`RULES`, `VAGUE` for “unsure”, `LEADING` for qualifiers) |
 | Colour scheme and brightness | in the app under *Mehr* (per device) |
 | Basic setup for new households | `public/js/seed.js` |
 | Photo compression | `public/js/image.js` (longest side 1280 px, target about 50–190 KB) |
@@ -315,8 +344,8 @@ content sent there may be used to improve Google's services.
 ## Tests
 
 ```bash
-npm test             # core logic: ingredient parsing, amounts, shopping list, periods,
-                     # text and photo import, exchange format, photos, app shell
+npm test             # core logic: ingredient parsing, amounts, shopping list, aisle detection, periods,
+                     # text and photo import, exchange format, photos, search, app shell
 npm run test:rules   # access rules against the Firestore emulator
 ```
 
@@ -339,12 +368,13 @@ households/kueche/mealPlan/{id}       date, slot, recipeId | note, servings, coo
 households/kueche/planInbox/{id}      recipeId | note, servings   ("for later")
 households/kueche/shoppingItems/{id}  key, name, amountText, aisle, source, checked, checkedBy
 households/kueche/pantry/{id}         name, amount, location, expiresAt, useSoon
-households/kueche/categories|tags|staples|catalog/{id}
+households/kueche/catalog/{id}           name, aisle, synonyms[], basic   (ingredient catalogue: your assignments)
+households/kueche/categories|tags|staples/{id}
 households/kueche/photos/{id}         full, thumb (bytes), type, size
 ```
 
 `settings` holds the household name, people (display name, colour, linked
-Google account), meals, planning period and aisle order. The app keeps the
+Google account), meals, planning period, aisle order and the milk setting (`uhtMilk`). The app keeps the
 state in memory and writes only the changed documents after each change.
 
 ---
@@ -359,6 +389,7 @@ state in memory and writes only the changed documents after each change.
 | "Gemini ist noch nicht eingeschaltet" | enable AI Logic in the console (setup step 1.5) and wait a few minutes |
 | "Kontingent aufgebraucht" | daily free-tier limit reached – try later or use "link, video" |
 | Old version after an update | reload once; the service worker fetches the new version |
+| An ingredient is in the wrong aisle | tap the red exclamation mark or the row and pick the aisle – the app remembers it for everyone. If a rule is missing in general, add it in `public/js/aisles.js` (with a test in `tests/aisles.test.js`) |
 | Sign-in pop-up blocked | allow pop-ups for the site |
 
 ---

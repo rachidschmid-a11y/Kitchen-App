@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   parseIngredientLine, parseIngredients, ingredientsToText, formatAmount, formatQuantity,
   resolveIngredient, buildShoppingList, mergeGeneratedItems, combineShoppingItems, startOfWeek, toISODate, isoWeek,
-  formatWeekRange, pantryStatus, startOfPeriod, periodDates, formatPeriod, filterRecipes, ingredientMatches, nextFreeDay, minutesInStep, parseSteps,
+  formatWeekRange, pantryStatus, startOfPeriod, periodDates, formatPeriod, filterRecipes, ingredientMatches, recipeGaps, nextFreeDay, minutesInStep, parseSteps,
 } from '../public/js/model.js';
 import { encodeRecipe, decodeRecipe } from '../public/js/share.js';
 
@@ -202,4 +202,17 @@ test('Schritte und Timer-Erkennung', () => {
   assert.equal(minutesInStep('Etwa 20 Minuten köcheln lassen'), 20);
   assert.equal(minutesInStep('10–12 min backen'), 12);
   assert.equal(minutesInStep('Abschmecken'), null);
+});
+
+test('Rezepte ohne Zutaten oder Zubereitung sind unvollständig und lassen sich filtern', () => {
+  const recipes = [
+    { id: '1', title: 'Nur Name', ingredients: [], steps: [] },
+    { id: '2', title: 'Ohne Schritte', ingredients: [{ name: 'Mehl' }], steps: [] },
+    { id: '3', title: 'Ohne Zutaten', ingredients: [], steps: ['Backen.'] },
+    { id: '4', title: 'Fertig', ingredients: [{ name: 'Mehl' }], steps: ['Backen.'] },
+  ];
+  assert.deepEqual(recipes.map((r) => recipeGaps(r).what), ['Zutaten und Zubereitung', 'Zubereitung', 'Zutaten', '']);
+  assert.equal(recipeGaps(recipes[3]).incomplete, false);
+  assert.deepEqual(filterRecipes(recipes, { incomplete: true }).map((r) => r.id), ['1', '2', '3']);
+  assert.equal(filterRecipes(recipes, {}).length, 4);
 });
