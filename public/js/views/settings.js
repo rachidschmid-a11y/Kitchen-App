@@ -4,7 +4,7 @@ import { icon } from '../icons.js';
 import { esc, toast, confirmDialog } from '../ui.js';
 import { MEAL_SLOTS, TAG_TONES, AISLES } from '../seed.js';
 import { WEEKDAYS, formatPeriod } from '../model.js';
-import { periodStartFor } from '../actions.js';
+import { periodStartFor, setUhtMilk } from '../actions.js';
 import { peopleSection, mountPeople } from './people.js';
 import { deviceSection, mountDevice } from '../device.js';
 
@@ -132,6 +132,11 @@ export function settingsView({ rerender }) {
 
     <section class="card settings">
       <div class="card-head"><h2>${icon('cart')} Abteilungen</h2><span class="muted small">Reihenfolge wie in eurem Supermarkt</span></div>
+      <div class="field"><span>Milch kaufen wir als</span>
+        <div class="segment" role="radiogroup" aria-label="Milch">
+          ${[[false, 'Frische Milch'], [true, 'H-Milch']].map(([v, l]) => `<button type="button" role="radio" class="${!!s.uhtMilk === v ? 'active' : ''}" aria-checked="${!!s.uhtMilk === v}" data-uht="${v}">${l}</button>`).join('')}
+        </div>
+        <em class="muted small">${s.uhtMilk ? 'Milch steht auf der Einkaufsliste unter „Trockenwaren“ (Regal).' : 'Milch steht auf der Einkaufsliste im „Kühlregal“.'}</em></div>
       <ol class="edit-list ordered">${order.map((a, i) => `<li><span class="mono muted">${i + 1}</span><span class="grow">${esc(a)}</span>
         <button type="button" class="icon-btn" data-aisle="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="${esc(a)} nach oben">${icon('chevronUp')}</button>
         <button type="button" class="icon-btn" data-aisle="${i}" data-dir="1" ${i === order.length - 1 ? 'disabled' : ''} aria-label="${esc(a)} nach unten">${icon('chevronDown')}</button></li>`).join('')}</ol>
@@ -199,6 +204,11 @@ export function settingsView({ rerender }) {
         if (mode) { theme.set({ mode: mode.dataset.mode }); rerender(); }
         const len = e.target.closest('[data-len]');
         if (len) store.setSettings({ planLength: Math.min(10, Math.max(3, (s.planLength ?? 7) + Number(len.dataset.len))) });
+        const uht = e.target.closest('[data-uht]');
+        if (uht) {
+          setUhtMilk(uht.dataset.uht === 'true');
+          toast(uht.dataset.uht === 'true' ? 'Milch steht jetzt unter „Trockenwaren“ (H-Milch).' : 'Milch steht jetzt im Kühlregal.');
+        }
         const slot = e.target.closest('[data-slot]');
         if (slot) {
           const id = slot.dataset.slot;

@@ -7,6 +7,7 @@ import {
   startOfPeriod, addDays, periodDates, weekdayShort, parseISODate, buildShoppingList, mergeGeneratedItems,
   resolveIngredient, nextFreeDay, formatDayLong, normalizeName,
 } from './model.js';
+import { guessAisle, isDrinkingMilk, UHT_AISLE } from './aisles.js';
 
 export const slotLabel = (id) => MEAL_SLOTS.find((s) => s.id === id)?.label || '';
 export const activeSlots = () => MEAL_SLOTS.filter((s) => store.settings().mealSlots.includes(s.id));
@@ -172,13 +173,33 @@ export function openRecipePicker({ title, onPick, suggestInbox = false }) {
   });
 }
 
+export const shopOptions = () => ({ uhtMilk: !!store.settings().uhtMilk });
+
+// Milch als H-Milch (Regal) oder frisch (Kühlregal) kaufen: Einstellung merken und Abteilung der Milch im
+// Katalog und auf der aktuellen Liste nachziehen. Wer die Abteilung später von Hand ändert, behält das.
+export function setUhtMilk(uht) {
+  const aisle = uht ? UHT_AISLE : 'Kühlregal';
+  const wasAisle = uht ? 'Kühlregal' : UHT_AISLE;
+  store.transaction(() => {
+    store.setSettings({ uhtMilk: !!uht });
+    for (const c of store.all('catalog')) {
+      if (isDrinkingMilk(c.name) && c.aisle === wasAisle) store.update('catalog', c.id, { aisle });
+    }
+    const catalog = store.all('catalog');
+    store.setAll('shoppingItems', store.all('shoppingItems').map((i) => {
+      const { entry } = resolveIngredient(i.name, catalog);
+      return (isDrinkingMilk(i.name) || (entry && isDrinkingMilk(entry.name))) && i.aisle === wasAisle ? { ...i, aisle } : i;
+    }));
+  });
+}
+
 // Einkaufsliste aus den geplanten Gerichten einer Woche (neu) erzeugen.
 export function generateShoppingList(which) {
   const dates = periodDatesFor(which);
   // Nur Mahlzeiten, die im Plan auch zu sehen sind (abgeschaltete Mahlzeiten zählen nicht mit).
   const slots = store.settings().mealSlots;
   const entries = store.all('mealPlan').filter((e) => dates.includes(e.date) && (!e.slot || slots.includes(e.slot)));
-  const generated = buildShoppingList({ entries, recipes: store.all('recipes'), catalog: store.all('catalog') });
+  const generated = buildShoppingList({ entries, recipes: store.all('recipes'), catalog: store.all('catalog'), options: shopOptions() });
   const merged = mergeGeneratedItems(store.all('shoppingItems'), generated, uid);
   store.transaction(() => {
     store.setAll('shoppingItems', merged);
@@ -189,7 +210,7 @@ export function generateShoppingList(which) {
 
 // Zutaten eines einzelnen Rezepts (mit gewählten Portionen) auf die Liste setzen.
 export function addRecipeToShopping(recipe, servings) {
-  const generated = buildShoppingList({ entries: [{ recipeId: recipe.id, servings }], recipes: [recipe], catalog: store.all('catalog') });
+  const generated = buildShoppingList({ entries: [{ recipeId: recipe.id, servings }], recipes: [recipe], catalog: store.all('catalog'), options: shopOptions() });
   store.setAll('shoppingItems', [...store.all('shoppingItems'), ...generated.map((g) => ({ ...g, id: uid(), source: 'recipe', checked: false }))]);
   return generated.length;
 }
@@ -205,7 +226,7 @@ export function addShoppingItem({ name, amountText = '' }) {
     return;
   }
   store.add('shoppingItems', {
-    key, name: entry ? entry.name : name, amountText, aisle: entry?.aisle || 'Sonstiges',
+    key, name: entry ? entry.name : name, amountText, aisle: entry?.aisle || guessAisle(name, '', shopOptions()).aisle,
     source: 'manual', checked: false, needed: true, fromRecipeIds: [],
   });
 }
@@ -217,7 +238,7 @@ export function setStapleOnList(staple, amountText) {
   if (own) store.update('shoppingItems', own.id, { amountText, needed: true });
   else {
     store.add('shoppingItems', {
-      key, name: staple.name, amountText, aisle: staple.aisle || entry?.aisle || 'Sonstiges',
+      key, name: staple.name, amountText, aisle: staple.aisle || entry?.aisle || guessAisle(staple.name, '', shopOptions()).aisle,
       source: 'staple', checked: false, needed: true, fromRecipeIds: [],
     });
   }

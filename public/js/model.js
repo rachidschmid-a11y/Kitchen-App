@@ -1,4 +1,5 @@
 // Reine Logik ohne DOM und ohne Speicher – wird mit `node --test` geprüft.
+import { guessAisle, coreName, isDrinkingMilk, UHT_AISLE } from './aisles.js';
 
 // ---------- Einheiten ----------
 
@@ -172,7 +173,7 @@ export function parseIngredients(text) {
 // Pfeffer als bloßer Hinweis beim Salz unter und fehlte auf der Einkaufsliste.
 const SEASONING = /^(?:(?:etwas|frisch|frischer|gemahlener|schwarzer|weißer|bunter|grober|grobes|feines)\s+){0,3}(?:meer)?(?:salz|pfeffer|zucker|muskat(?:nuss)?|chili(?:flocken|pulver)?|paprikapulver|cayennepfeffer|zimt|kreuzkümmel|öl|olivenöl)$/i;
 
-function splitSeasonings(line) {
+export function splitSeasonings(line) {
   const text = line.replace(/^[-•*]\s*/, '');
   if (/^[\d½⅓⅔¼¾⅛]/.test(text) || text.includes('(')) return [line];
   const words = text.split(/\s*,\s*|\s+und\s+/).map((w) => w.trim()).filter(Boolean);
@@ -248,12 +249,21 @@ function singular(n) {
 // Findet die Katalog-Zutat zu einem Namen („Zwiebeln“ → Zwiebel) und liefert einen stabilen Schlüssel.
 export function resolveIngredient(name, catalog = []) {
   const n = normalizeName(name);
-  const s = singular(n);
-  for (const c of catalog) {
-    const names = [c.name, ...(c.synonyms || [])].map(normalizeName);
-    if (names.includes(n) || names.some((x) => singular(x) === s)) return { key: c.id, entry: c };
-  }
-  return { key: 'n:' + s, entry: null };
+  const find = (word) => {
+    const s = singular(word);
+    for (const c of catalog) {
+      const names = [c.name, ...(c.synonyms || [])].map(normalizeName);
+      if (names.includes(word) || names.some((x) => singular(x) === s)) return c;
+    }
+    return null;
+  };
+  const hit = find(n);
+  if (hit) return { key: hit.id, entry: hit };
+  // „rote Paprika“, „frische Petersilie“ → Paprika, Petersilie: gleiche Zutat, gleiche Zeile auf der Liste.
+  const core = coreName(n);
+  const viaCore = core !== n ? find(core) : null;
+  if (viaCore) return { key: viaCore.id, entry: viaCore };
+  return { key: 'n:' + singular(core), entry: null };
 }
 
 // ---------- Einkaufsliste ----------
@@ -312,7 +322,8 @@ export function combineShoppingItems(items) {
 }
 
 // Sammelt die Zutaten aller geplanten Gerichte, rechnet Portionen um und fasst gleiche Zutaten zusammen.
-export function buildShoppingList({ entries, recipes, catalog = [] }) {
+// options.uhtMilk: Milch kommt als H-Milch aus dem Regal (siehe aisles.js).
+export function buildShoppingList({ entries, recipes, catalog = [], options = {} }) {
   const items = new Map();
   for (const e of entries) {
     if (!e.recipeId || e.cooked) continue;
@@ -323,7 +334,9 @@ export function buildShoppingList({ entries, recipes, catalog = [] }) {
       const { key, entry } = resolveIngredient(ing.name, catalog);
       let it = items.get(key);
       if (!it) {
-        it = { key, name: entry ? entry.name : ing.name, aisle: entry?.aisle || 'Sonstiges', quantities: {}, fromRecipeIds: [], basic: !!entry?.basic };
+        // Nicht im Katalog (und noch nicht von euch zugeordnet): Abteilung aus dem Namen ableiten.
+        const guess = entry ? null : guessAisle(ing.name, ing.unit, options);
+        it = { key, name: entry ? entry.name : ing.name, aisle: entry ? entry.aisle || 'Sonstiges' : guess.aisle, quantities: {}, fromRecipeIds: [], basic: entry ? !!entry.basic : guess.basic };
         items.set(key, it);
       }
       const qty = ing.amountMax ?? ing.amount;
@@ -521,3 +534,5 @@ export function minutesInStep(text) {
   const m = String(text).match(/(\d+)(?:\s*[-–]\s*(\d+))?\s*(?:min\b|minuten|minute)/i);
   return m ? Number(m[2] || m[1]) : null;
 }
+
+export { isDrinkingMilk, UHT_AISLE };

@@ -23,6 +23,7 @@ export const DEFAULT_SETTINGS = {
   planStartDay: 0, // 0 = Montag … 6 = Sonntag
   planLength: 7, // Tage pro Planung, 3–10; der Rhythmus bleibt wöchentlich
   aisleOrder: AISLES,
+  uhtMilk: false, // true = Milch als H-Milch aus dem Regal statt aus dem Kühlregal
 };
 
 const CATEGORIES = [
