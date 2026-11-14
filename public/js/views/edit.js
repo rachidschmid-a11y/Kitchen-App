@@ -8,6 +8,7 @@ import { deletePhoto } from '../photos.js';
 import { TAG_TONES } from '../seed.js';
 import { parseIngredients, ingredientsToText, parseSteps, formatQuantity } from '../model.js';
 import { navigate } from '../main.js';
+import { askAisle, classify, unsureButton, hintUnsure } from '../aisle-ask.js';
 
 function preview(text) {
   const ings = parseIngredients(text);
@@ -15,8 +16,10 @@ function preview(text) {
   let section = '';
   return `<ul class="parse-list">${ings.map((i) => {
     const head = i.section && i.section !== section ? `<li class="parse-section">${esc((section = i.section))}</li>` : '';
+    const c = classify(i.name, i.unit);
     return `${head}<li><span class="mono">${esc(formatQuantity(i.amount, i.unit, i.amountMax) || '–')}</span>
-      <b>${esc(i.name)}</b>${i.note ? `<span class="muted">${esc(i.note)}</span>` : ''}</li>`;
+      <b>${esc(i.name)}</b>${i.note ? `<span class="muted">${esc(i.note)}</span>` : ''}
+      <span class="aisle-chip${c.sure ? '' : ' unsure'}">${esc(c.aisle)}${c.sure ? '' : '?'}</span>${c.sure ? '' : unsureButton(i.name, i.unit)}</li>`;
   }).join('')}</ul>`;
 }
 
@@ -128,7 +131,12 @@ export function editView({ params }) {
     html,
     mount(root) {
       const form = root.querySelector('form');
-      root.querySelector('[data-ing]').addEventListener('input', (e) => { root.querySelector('[data-preview]').innerHTML = preview(e.target.value); });
+      const refreshPreview = () => { root.querySelector('[data-preview]').innerHTML = preview(root.querySelector('[data-ing]').value); };
+      root.querySelector('[data-ing]').addEventListener('input', refreshPreview);
+      root.querySelector('[data-preview]').addEventListener('click', (e) => {
+        const ask = e.target.closest('[data-ask]');
+        if (ask) askAisle(ask.dataset.ask, { unit: ask.dataset.unit, onDone: refreshPreview });
+      });
 
       const info = root.querySelector('[data-photo-info]');
       root.querySelectorAll('[data-photo-file]').forEach((input) => input.addEventListener('change', async (e) => {
@@ -213,6 +221,7 @@ export function editView({ params }) {
         }
         toast('Gespeichert');
         navigate(`rezept/${id}`);
+        setTimeout(() => hintUnsure([id]), 900);
       });
     },
   };

@@ -108,3 +108,23 @@ test('Einkaufsliste folgt der Milch-Einstellung', () => {
   assert.deepEqual(make(false), { Vollmilch: 'Kühlregal', Buttermilch: 'Kühlregal' });
   assert.deepEqual(make(true), { Vollmilch: 'Trockenwaren', Buttermilch: 'Kühlregal' });
 });
+
+test('Sicherheit: bei eindeutigen Wörtern sicher, bei allgemeinen oder unbekannten nicht', async () => {
+  const { classifyIngredient, collectUnsure } = await import('../public/js/model.js');
+  for (const n of ['Hackfleisch', 'Olivenöl', 'Käse', 'Zimt zum Bestreuen', 'rustikales Brot', 'Massaman Curry Paste', 'Okraschoten']) assert.equal(guessAisle(n).sure, true, n);
+  for (const n of ['Gemüse', 'Kräuter', 'grüne Bohnen', 'Mais', 'Belag nach Belieben', 'Wasser oder Joghurt', 'gemischte Nüsse', 'Zephyrmolch']) assert.equal(guessAisle(n).sure, false, n);
+  // Im Katalog (von euch zugeordnet oder bestätigt) ist alles sicher
+  const catalog = [{ id: 'k1', name: 'Mais', aisle: 'Konserven', synonyms: [] }];
+  assert.equal(classifyIngredient('Mais', 'g', catalog).sure, true);
+  assert.equal(classifyIngredient('Mais', 'g', []).sure, false);
+  const recipes = [
+    { id: 'a', title: 'A', ingredients: [{ name: 'Mais' }, { name: 'Zephyrmolch' }, { name: 'Salz' }] },
+    { id: 'b', title: 'B', ingredients: [{ name: 'mais' }, { name: 'Hackfleisch' }] },
+  ];
+  const list = collectUnsure({ recipes, catalog: [], withList: false });
+  assert.deepEqual(list.map((u) => [u.name, u.recipeIds.length]), [['Mais', 2], ['Zephyrmolch', 1]]);
+  assert.deepEqual(collectUnsure({ recipes, catalog, withList: false }).map((u) => u.name), ['Zephyrmolch']);
+  assert.deepEqual(collectUnsure({ recipes, catalog: [], recipeIds: ['b'], withList: false }).map((u) => u.name), ['mais']);
+  const items = [{ id: 'i1', name: 'Zephyrmolch-Pulver', checked: false }, { id: 'i2', name: 'Spülmittel', checked: false }];
+  assert.deepEqual(collectUnsure({ recipes: [], catalog: [], shoppingItems: items }).map((u) => [u.name, u.onList]), [['Zephyrmolch-Pulver', true]]);
+});

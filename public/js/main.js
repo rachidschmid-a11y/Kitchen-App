@@ -12,6 +12,7 @@ import { pantryView } from './views/pantry.js';
 import { settingsView } from './views/settings.js';
 import { importView } from './views/import.js';
 import { dataView } from './views/data.js';
+import { ingredientsView } from './views/ingredients.js';
 import { me, meId, avatar, whoSkipped, setUser } from './members.js';
 import { whoAmIDialog } from './views/people.js';
 import { initDevice } from './device.js';
@@ -40,6 +41,7 @@ const ROUTES = [
   [/^vorrat$/, 'vorrat', () => pantryView],
   [/^mehr$/, 'mehr', () => settingsView],
   [/^daten$/, 'mehr', () => dataView],
+  [/^zutaten$/, 'mehr', () => ingredientsView],
 ];
 
 const viewEl = document.getElementById('view');

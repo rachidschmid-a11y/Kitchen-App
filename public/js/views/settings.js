@@ -6,6 +6,7 @@ import { MEAL_SLOTS, TAG_TONES, AISLES } from '../seed.js';
 import { WEEKDAYS, formatPeriod } from '../model.js';
 import { periodStartFor, setUhtMilk } from '../actions.js';
 import { peopleSection, mountPeople } from './people.js';
+import { unsureList } from './ingredients.js';
 import { deviceSection, mountDevice } from '../device.js';
 
 
@@ -70,6 +71,7 @@ export function settingsView({ rerender }) {
   const categories = [...store.all('categories')].sort((a, b) => a.order - b.order);
   const tags = store.all('tags');
   const order = s.aisleOrder || AISLES;
+  const unsure = unsureList();
 
   const html = `
     <header class="page-head"><div><p class="eyebrow">Mehr</p><h1>Einstellungen</h1></div></header>
@@ -80,6 +82,12 @@ export function settingsView({ rerender }) {
       <span class="link-card-ic">${icon('download')}</span>
       <span><b>Import &amp; Export</b><em>Rezepte als Datei sichern, viele Rezepte auf einmal importieren, Vorlage herunterladen</em></span>
       ${icon('chevronRight')}
+    </a>
+
+    <a class="card settings link-card" href="#/zutaten">
+      <span class="link-card-ic">${icon('cart')}</span>
+      <span><b>Zutaten prüfen</b><em>${unsure.length ? `${unsure.length} ${unsure.length === 1 ? 'Zutat' : 'Zutaten'} ohne sichere Abteilung` : 'Alle Zutaten sind einsortiert'}</em></span>
+      ${unsure.length ? `<span class="unsure-btn static" aria-hidden="true">${unsure.length}</span>` : ''}${icon('chevronRight')}
     </a>
 
     ${deviceSection()}

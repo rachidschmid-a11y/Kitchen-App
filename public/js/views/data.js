@@ -5,6 +5,7 @@ import { esc, toast, openDialog, confirmDialog, downloadJson, todayIso } from '.
 import { recipeListFrom, previewImport, importRecipes, exportRecipes } from '../importer.js';
 import { TEMPLATE } from '../exchange.js';
 import { exportPhotos, importPhotos, deletePhoto } from '../photos.js';
+import { hintUnsure } from '../aisle-ask.js';
 
 let exportScope = 'all';
 
@@ -62,6 +63,7 @@ export function recipeImportDialog(list) {
         close();
         const parts = [res.added && `${res.added} neu`, res.updated && `${res.updated} aktualisiert`, res.skipped && `${res.skipped} übersprungen`].filter(Boolean);
         toast(`Import fertig: ${parts.join(', ') || 'nichts geändert'}`);
+        if (res.ids.length) setTimeout(() => hintUnsure(res.ids), 1200);
       });
     },
   });

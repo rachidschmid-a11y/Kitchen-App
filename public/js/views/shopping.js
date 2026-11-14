@@ -6,6 +6,7 @@ import { AISLES } from '../seed.js';
 import { parseIngredientLine, formatQuantity, isInPantry, resolveIngredient, toISODate, combineShoppingItems } from '../model.js';
 import { addShoppingItem, setStapleOnList, learnAisle, generateShoppingList, periodStartFor } from '../actions.js';
 import { meId, memberName } from '../members.js';
+import { askAisle, classify, unsureButton } from '../aisle-ask.js';
 
 // Abteilung → Lagerort, wenn Gekauftes in den Vorrat wandert.
 const AISLE_LOCATION = { 'Kühlregal': 'Kühlschrank', 'Fleisch & Fisch': 'Kühlschrank', 'Tiefkühl': 'Tiefkühler' };
@@ -42,8 +43,10 @@ export function shoppingView() {
   const rows = combineShoppingItems(items).map((r) => {
     const have = !r.checked && isInPantry(r.key, pantry, catalog);
     const fromRecipesOnly = r.sources.every((s) => s === 'plan' || s === 'recipe');
-    return { ...r, have, likely: !r.checked && !r.needed && fromRecipesOnly && (have || r.basic) };
+    const sure = r.checked || classify(r.name, '').sure;
+    return { ...r, have, sure, likely: !r.checked && !r.needed && fromRecipesOnly && (have || r.basic) };
   });
+  const unsure = rows.filter((r) => !r.sure);
   const done = rows.filter((r) => r.checked).length;
   const aisleRows = rows.filter((r) => !r.likely);
   const likelyRows = rows.filter((r) => r.likely);
@@ -58,6 +61,7 @@ export function shoppingView() {
         <span class="shop-origin">${esc(originText(r))}${r.checked && memberName(r.checkedBy) ? ` · ✓ ${esc(memberName(r.checkedBy))}` : ''}</span>
       </button>
       ${r.likely ? `<span class="badge${r.have ? ' good' : ''}">${r.have ? 'im Vorrat' : 'Grundvorrat'}</span>` : ''}
+      ${r.sure ? '' : unsureButton(r.name)}
       ${r.amountText ? `<span class="shop-qty mono">${esc(r.amountText)}</span>` : ''}
       ${r.likely ? `<button type="button" class="btn small need-btn" data-need="${r.ids.join(',')}" aria-label="${esc(r.name)} doch kaufen">${icon('plus')} Kaufen</button>` : ''}
     </li>`;
@@ -67,6 +71,9 @@ export function shoppingView() {
       <div><p class="eyebrow">Einkauf</p><h1>Einkaufsliste</h1></div>
       ${rows.length ? ring(done, rows.length) : ''}
     </header>
+
+    ${unsure.length ? `<a class="banner gold" href="#/zutaten">
+      ${icon('cart')}<div><b>${unsure.length} ${unsure.length === 1 ? 'Artikel' : 'Artikel'} ohne sichere Abteilung</b><span>Mit ❗ markiert – antippen und zuordnen</span></div>${icon('chevronRight')}</a>` : ''}
 
     <form class="add-bar" data-add-form>
       <input id="shopAdd" placeholder="Artikel hinzufügen, z. B. „2 Gurken“" autocomplete="off" enterkeyhint="done">
@@ -119,6 +126,8 @@ export function shoppingView() {
         addShoppingItem({ name: parsed.name, amountText: formatQuantity(parsed.amount, parsed.unit, parsed.amountMax) });
       });
       root.addEventListener('click', async (e) => {
+        const ask = e.target.closest('[data-ask]');
+        if (ask) { askAisle(ask.dataset.ask); return; }
         const c = e.target.closest('[data-check]');
         if (c) {
           const ids = c.dataset.check.split(',');

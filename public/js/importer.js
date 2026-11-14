@@ -41,8 +41,9 @@ export function importRecipes(list, { duplicates = 'skip' } = {}) {
     const notesOf = (r) => r.notes.map((n) => ({ id: uid(), text: n.text, original: !!n.original, createdAt: n.date ? Date.parse(n.date) || now : now }));
     let added = 0;
     let updated = 0;
+    const ids = [];
     const addNew = (r, title = r.title) => {
-      store.add('recipes', { ...toDoc(r), title, noteLog: notesOf(r), rating: r.rating, favorite: r.favorite, lastCookedAt: null, photo: null, createdAt: now + added });
+      ids.push(store.add('recipes', { ...toDoc(r), title, noteLog: notesOf(r), rating: r.rating, favorite: r.favorite, lastCookedAt: null, photo: null, createdAt: now + added }).id);
       added++;
     };
     fresh.forEach((r) => addNew(r));
@@ -60,7 +61,7 @@ export function importRecipes(list, { duplicates = 'skip' } = {}) {
         updated++;
       }
     }
-    return { added, updated, skipped: duplicates === 'skip' ? dups.length : 0, invalid };
+    return { added, updated, skipped: duplicates === 'skip' ? dups.length : 0, invalid, ids };
   });
 }
 

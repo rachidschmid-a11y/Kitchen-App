@@ -693,3 +693,17 @@ body.gated #view { margin-left: 0; padding: 0; }
 
 /* Am Handy: was per Tastatur oder „Weiter“ in den Blick springt, soll nicht hinter der Leiste unten landen. */
 @media (max-width: 899px) { html { scroll-padding-bottom: calc(var(--nav-h) + var(--safe-b) + 20px); } }
+
+/* Zutat ohne sichere Abteilung: rotes Ausrufezeichen und Hinweis */
+.unsure-btn { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; border: none; padding: 0; background: var(--danger); color: #fff; font: 700 13px/22px var(--font-body); text-align: center; cursor: pointer; }
+.unsure-btn.static { cursor: default; display: inline-block; min-width: 22px; padding: 0 6px; width: auto; border-radius: 11px; }
+.unsure-btn:hover { filter: brightness(1.1); }
+.aisle-chip { font-size: 11.5px; padding: 1px 8px; border-radius: 100px; background: var(--surface-3); color: var(--ink-2); white-space: nowrap; }
+.aisle-chip.unsure { background: var(--danger-soft); color: var(--danger); }
+.unsure-list { list-style: none; margin: 0; padding: 0; }
+.unsure-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 4px; border: none; background: none; text-align: left; cursor: pointer; border-bottom: 1px solid var(--line); }
+.unsure-row .grow { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.unsure-row .grow em { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ing .unsure-btn { margin-left: 6px; }
+.shop-item .unsure-btn { margin-right: 6px; }
+a.banner { text-decoration: none; color: inherit; }

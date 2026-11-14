@@ -90,15 +90,19 @@ const RULES = [
   (n) => has(n, /apfel|äpfel|birne|banane|mango|himbeere|erdbeere|heidelbeere|brombeere|kirsche|aprikose|pflaume|feige|traube|beere|obst|früchte|frucht|ananas|kiwi|melone|pfirsich|granatapfel|zitrus/) && ['Obst & Gemüse', false],
 ];
 
+// Sehr allgemeine Wörter, bei denen die Abteilung vom Produkt abhängt (frisch, Dose, TK …) – dort fragt die App nach.
+const VAGUE = /^(?:gemüse|obst|früchte?|kräuter|belag|toppings?|beilage|dekoration|deko)(?:\s|$)|(?:^|\s)(?:bohnen?|erbsen?|beeren|pilze|nüsse|mais|oliven)$|\boder\b/;
+
 // options.uhtMilk: Milch wird als H-Milch im Regal gekauft (statt aus dem Kühlregal).
+// sure = false: die App ist sich nicht sicher (kein passendes Wort gefunden oder nur ein sehr allgemeines) → ❗ und Nachfrage.
 export function guessAisle(name, unit = '', options = {}) {
   const n = norm(name);
-  if (options.uhtMilk && (isDrinkingMilk(n) || PLANT_DRINK.test(n))) return { aisle: UHT_AISLE, basic: false };
+  if (options.uhtMilk && (isDrinkingMilk(n) || PLANT_DRINK.test(n))) return { aisle: UHT_AISLE, basic: false, sure: true };
   for (const rule of RULES) {
     const r = rule(n, unit);
-    if (r) return { aisle: r[0], basic: !!r[1] };
+    if (r) return { aisle: r[0], basic: !!r[1], sure: !VAGUE.test(n) };
   }
-  return { aisle: 'Sonstiges', basic: false };
+  return { aisle: 'Sonstiges', basic: false, sure: false };
 }
 
 // Der Kern einer Zutat ohne Beiwort: „frische Petersilie“, „glatte Petersilie“, „rote Paprika“ sind

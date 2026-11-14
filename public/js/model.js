@@ -361,6 +361,35 @@ export function mergeGeneratedItems(existing, generated, makeId) {
   return [...kept, ...fresh];
 }
 
+// Abteilung einer Zutat samt Sicherheit: im Katalog (von euch zugeordnet oder bestätigt) = sicher,
+// sonst die Vermutung aus dem Namen (aisles.js) – dann mit sure = false, wenn die App unsicher ist.
+export function classifyIngredient(name, unit = '', catalog = [], options = {}) {
+  const { key, entry } = resolveIngredient(name, catalog);
+  if (entry) return { key, entry, aisle: entry.aisle || 'Sonstiges', basic: !!entry.basic, sure: true, known: true };
+  const g = guessAisle(name, unit, options);
+  return { key, entry: null, aisle: g.aisle, basic: g.basic, sure: g.sure, known: false };
+}
+
+// Alle Zutaten, bei denen die App unsicher ist – je Zutat einmal, mit den Rezepten, in denen sie vorkommt.
+// recipeIds: nur diese Rezepte; withList: auch offene Artikel der Einkaufsliste berücksichtigen.
+export function collectUnsure({ recipes, catalog = [], shoppingItems = [], options = {}, recipeIds = null, withList = true }) {
+  const out = new Map();
+  const add = (name, unit, where) => {
+    const c = classifyIngredient(name, unit, catalog, options);
+    if (c.sure) return;
+    const cur = out.get(c.key) || { key: c.key, name, unit, aisle: c.aisle, basic: c.basic, recipeIds: [], onList: false };
+    if (where.recipeId && !cur.recipeIds.includes(where.recipeId)) cur.recipeIds.push(where.recipeId);
+    if (where.list) cur.onList = true;
+    out.set(c.key, cur);
+  };
+  for (const r of recipes) {
+    if (recipeIds && !recipeIds.includes(r.id)) continue;
+    for (const i of r.ingredients || []) if (i.name) add(i.name.trim(), i.unit, { recipeId: r.id });
+  }
+  if (withList && !recipeIds) for (const i of shoppingItems) if (!i.checked && i.name) add(i.name, '', { list: true });
+  return [...out.values()].sort((a, b) => (b.recipeIds.length - a.recipeIds.length) || a.name.localeCompare(b.name, 'de'));
+}
+
 export function isInPantry(key, pantry, catalog) {
   return pantry.some((p) => resolveIngredient(p.name, catalog).key === key);
 }

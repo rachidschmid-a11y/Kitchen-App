@@ -8,6 +8,7 @@ import { groupBySection, formatQuantity, resolveIngredient, isInPantry, minutesI
 import { openPlanDialog, addRecipeToShopping, markCooked } from '../actions.js';
 import { navigate } from '../main.js';
 import { avatar, memberName, meId } from '../members.js';
+import { askAisle, classify, unsureButton } from '../aisle-ask.js';
 import { encodeRecipe, shareUrl } from '../share.js';
 import { photoButtons, uploadPhoto } from '../photo-upload.js';
 import { deletePhoto, getPhoto, savePhoto, photoUrl } from '../photos.js';
@@ -16,7 +17,7 @@ import { deletePhoto, getPhoto, savePhoto, photoUrl } from '../photos.js';
 const servingsById = new Map();
 const checkedById = new Map();
 
-function ingredientList(recipe, factor, { checkable = true } = {}) {
+function ingredientList(recipe, factor, { checkable = true, asks = checkable } = {}) {
   const catalog = store.all('catalog');
   const pantry = store.all('pantry');
   const checked = checkedById.get(recipe.id) || new Set();
@@ -34,6 +35,7 @@ function ingredientList(recipe, factor, { checkable = true } = {}) {
           <span class="ing-qty mono">${esc(qty)}</span>
           <span class="ing-name">${esc(ing.name)}${ing.note ? `<span class="ing-note">, ${esc(ing.note)}</span>` : ''}</span>
           ${have ? '<span class="badge good">im Vorrat</span>' : entry?.basic ? '<span class="badge">Grundvorrat</span>' : ''}
+          ${asks && !classify(ing.name, ing.unit).sure ? unsureButton(ing.name, ing.unit) : ''}
         </li>`;
       }).join('')}
     </ul>`).join('');
@@ -112,6 +114,8 @@ export function recipeView({ params, rerender }) {
       mountNotes(root, recipe, rerender);
       mountHeroPhoto(root, recipe);
       root.addEventListener('click', async (e) => {
+        const ask = e.target.closest('[data-ask]');
+        if (ask) { askAisle(ask.dataset.ask, { unit: ask.dataset.unit }); return; }
         if (e.target.closest('[data-fav]')) store.update('recipes', recipe.id, { favorite: !recipe.favorite });
         const rate = e.target.closest('[data-rate]');
         if (rate) {

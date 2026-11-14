@@ -7,7 +7,7 @@ import {
   startOfPeriod, addDays, periodDates, weekdayShort, parseISODate, buildShoppingList, mergeGeneratedItems,
   resolveIngredient, nextFreeDay, formatDayLong, normalizeName,
 } from './model.js';
-import { guessAisle, isDrinkingMilk, UHT_AISLE } from './aisles.js';
+import { guessAisle, isDrinkingMilk, UHT_AISLE, coreName } from './aisles.js';
 
 export const slotLabel = (id) => MEAL_SLOTS.find((s) => s.id === id)?.label || '';
 export const activeSlots = () => MEAL_SLOTS.filter((s) => store.settings().mealSlots.includes(s.id));
@@ -250,6 +250,21 @@ export function learnAisle(name, aisle) {
   const { entry } = resolveIngredient(name, catalog);
   if (entry) store.update('catalog', entry.id, { aisle });
   else store.add('catalog', { name, aisle, synonyms: [], basic: false });
+}
+
+// „Wo steht das im Supermarkt?“ beantwortet: im Katalog merken (für den ganzen Haushalt) und die offene Liste nachziehen.
+export function confirmAisle(name, aisle, basic = false) {
+  store.transaction(() => {
+    const { entry } = resolveIngredient(name, store.all('catalog'));
+    if (entry) store.update('catalog', entry.id, { aisle, basic: !!basic });
+    else {
+      const core = coreName(name);
+      store.add('catalog', { name: core.charAt(0).toUpperCase() + core.slice(1), aisle, synonyms: [], basic: !!basic });
+    }
+    const catalog = store.all('catalog');
+    const key = resolveIngredient(name, catalog).key;
+    store.setAll('shoppingItems', store.all('shoppingItems').map((i) => (resolveIngredient(i.name, catalog).key === key ? { ...i, aisle, basic: !!basic } : i)));
+  });
 }
 
 export function markCooked(recipeId, entryId = null) {
