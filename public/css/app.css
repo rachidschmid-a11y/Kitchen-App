@@ -690,3 +690,6 @@ body.gated #view { margin-left: 0; padding: 0; }
 /* Suche: worin gesucht wird */
 .search-in { align-self: flex-start; margin-top: -6px; }
 .search-in > button { padding: 0 14px; white-space: nowrap; flex: 0 0 auto; }
+
+/* Am Handy: was per Tastatur oder „Weiter“ in den Blick springt, soll nicht hinter der Leiste unten landen. */
+@media (max-width: 899px) { html { scroll-padding-bottom: calc(var(--nav-h) + var(--safe-b) + 20px); } }

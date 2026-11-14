@@ -37,8 +37,16 @@ export function normalize(s) {
 
 export const byCreated = (a, b) => (a.createdAt || 0) - (b.createdAt || 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
-function notify() {
-  listeners.forEach((fn) => fn());
+// info.remote = true: die Änderung kam von einem anderen Gerät (nicht von dieser Ansicht).
+function notify(info = {}) {
+  listeners.forEach((fn) => fn(info));
+}
+
+// Vergleich unabhängig von der Reihenfolge der Felder (Firestore liefert sie alphabetisch sortiert).
+function stable(v) {
+  if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
+  if (v && typeof v === 'object') return `{${Object.keys(v).sort().filter((k) => v[k] !== undefined).map((k) => `${JSON.stringify(k)}:${stable(v[k])}`).join(',')}}`;
+  return JSON.stringify(v ?? null);
 }
 
 function commit() {
@@ -122,11 +130,15 @@ export const store = {
   },
   // Stand vom Server übernehmen, ohne ihn zurückzuschicken. Mehrere Sammlungen kurz hintereinander
   // werden zu einem Neuzeichnen zusammengefasst.
+  // Ist nichts anders als hier schon bekannt (z. B. das Echo der eigenen Änderung), wird nicht neu gezeichnet.
   receive(col, value) {
-    if (col === 'settings') state.settings = { ...DEFAULT_SETTINGS, ...(value || {}) };
-    else state[col] = col === 'recipes' ? value.map(normalizeRecipe) : value;
+    const next = col === 'settings' ? { ...DEFAULT_SETTINGS, ...(value || {}) } : col === 'recipes' ? value.map(normalizeRecipe) : value;
+    const same = stable(col === 'settings' ? state.settings : state[col]) === stable(next);
+    if (col === 'settings') state.settings = next;
+    else state[col] = next;
+    if (same) return;
     clearTimeout(renderTimer);
-    renderTimer = setTimeout(notify, 30);
+    renderTimer = setTimeout(() => notify({ remote: true }), 30);
   },
 };
 

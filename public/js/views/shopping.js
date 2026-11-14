@@ -47,7 +47,7 @@ export function shoppingView() {
   const done = rows.filter((r) => r.checked).length;
   const aisleRows = rows.filter((r) => !r.likely);
   const likelyRows = rows.filter((r) => r.likely);
-  const groups = [...new Set([...order, ...aisleRows.map((r) => r.aisle)])]
+  const groups = [...new Set([...order, ...aisleRows.map((r) => r.aisle || 'Sonstiges')])]
     .map((aisle) => ({ aisle, rows: aisleRows.filter((r) => (r.aisle || 'Sonstiges') === aisle) }))
     .filter((g) => g.rows.length);
 
@@ -122,7 +122,9 @@ export function shoppingView() {
         const c = e.target.closest('[data-check]');
         if (c) {
           const ids = c.dataset.check.split(',');
-          const checked = !store.get('shoppingItems', ids[0]).checked;
+          const first = store.get('shoppingItems', ids[0]);
+          if (!first) return; // gerade von einem anderen Gerät entfernt
+          const checked = !first.checked;
           // Wer hat's im Laden abgehakt? (wie „Erledigt von“ in „Unser Nest“)
           store.setAll('shoppingItems', store.all('shoppingItems').map((i) => (ids.includes(i.id) ? { ...i, checked, checkedBy: checked ? meId() : null } : i)));
         }
@@ -147,12 +149,14 @@ export function shoppingView() {
           const bought = store.all('shoppingItems').filter((i) => i.checked);
           const ok = await confirmDialog({ title: 'In den Vorrat übernehmen?', text: `${bought.length} gekaufte Artikel landen im Vorrat und verschwinden von der Liste.`, confirm: 'Übernehmen', danger: false });
           if (!ok) return;
-          for (const i of bought) {
-            if (!store.all('pantry').some((p) => resolveIngredient(p.name, catalog).key === i.key)) {
-              store.add('pantry', { name: i.name, amount: i.amountText, location: AISLE_LOCATION[i.aisle] || 'Speisekammer', expiresAt: null, useSoon: false });
+          store.transaction(() => {
+            for (const i of bought) {
+              if (!store.all('pantry').some((p) => resolveIngredient(p.name, catalog).key === i.key)) {
+                store.add('pantry', { name: i.name, amount: i.amountText, location: AISLE_LOCATION[i.aisle] || 'Speisekammer', expiresAt: null, useSoon: false });
+              }
             }
-          }
-          store.setAll('shoppingItems', store.all('shoppingItems').filter((i) => !i.checked));
+            store.setAll('shoppingItems', store.all('shoppingItems').filter((i) => !i.checked));
+          });
           toast(`${bought.length} Artikel im Vorrat`);
         }
       });
@@ -218,16 +222,21 @@ function editItem(ids) {
         const aisle = String(f.get('aisle'));
         const name = String(f.get('name')).trim() || item.name;
         const amountText = String(f.get('amountText')).trim();
-        if (aisle !== item.aisle) learnAisle(item.name, aisle);
         const amountChanged = amountText !== item.amountText;
-        const next = store.all('shoppingItems')
-          .filter((i) => !(amountChanged && ids.includes(i.id) && i.id !== ids[0]))
-          .map((i) => {
-            if (!ids.includes(i.id)) return i;
-            const patch = { ...i, name, aisle };
-            return amountChanged ? { ...patch, amountText, quantities: null, source: 'manual' } : patch;
-          });
-        store.setAll('shoppingItems', next);
+        // Neuer Name = andere Zutat: neu zuordnen, damit Vorratsabgleich und Zusammenfassen stimmen.
+        const renamed = name !== item.name;
+        store.transaction(() => {
+          if (aisle !== item.aisle) learnAisle(name, aisle);
+          const key = renamed ? resolveIngredient(name, store.all('catalog')).key : item.key;
+          const next = store.all('shoppingItems')
+            .filter((i) => !(amountChanged && ids.includes(i.id) && i.id !== ids[0]))
+            .map((i) => {
+              if (!ids.includes(i.id)) return i;
+              const patch = { ...i, name, aisle, key, ...(renamed ? { basic: false, needed: true } : {}) };
+              return amountChanged ? { ...patch, amountText, quantities: null, source: 'manual' } : patch;
+            });
+          store.setAll('shoppingItems', next);
+        });
         close();
       });
       dlg.querySelector('[data-del]').addEventListener('click', () => {

@@ -212,15 +212,17 @@ export function settingsView({ rerender }) {
           const j = i + Number(cm.dataset.dir);
           const list = [...categories];
           [list[i], list[j]] = [list[j], list[i]];
-          list.forEach((c, k) => { if (c.order !== k) store.update('categories', c.id, { order: k }); });
+          store.transaction(() => list.forEach((c, k) => { if (c && c.order !== k) store.update('categories', c.id, { order: k }); }));
         }
         const cd = e.target.closest('[data-cat-del]');
         if (cd) {
           const c = store.get('categories', cd.dataset.catDel);
           const used = store.all('recipes').filter((r) => r.categoryIds?.includes(c.id)).length;
           if (used && !(await confirmDialog({ title: 'Kategorie löschen?', text: `„${c.name}“ wird bei ${used} Rezepten entfernt.` }))) return;
-          for (const r of store.all('recipes').filter((x) => x.categoryIds?.includes(c.id))) store.update('recipes', r.id, { categoryIds: r.categoryIds.filter((x) => x !== c.id) });
-          store.remove('categories', c.id);
+          store.transaction(() => {
+            for (const r of store.all('recipes').filter((x) => x.categoryIds?.includes(c.id))) store.update('recipes', r.id, { categoryIds: r.categoryIds.filter((x) => x !== c.id) });
+            store.remove('categories', c.id);
+          });
         }
         const tone = e.target.closest('[data-tone]');
         if (tone) {
@@ -232,8 +234,10 @@ export function settingsView({ rerender }) {
           const t = store.get('tags', td.dataset.tagDel);
           const used = store.all('recipes').filter((r) => r.tagIds?.includes(t.id)).length;
           if (used && !(await confirmDialog({ title: 'Tag löschen?', text: `„${t.name}“ wird bei ${used} Rezepten entfernt.` }))) return;
-          for (const r of store.all('recipes').filter((x) => x.tagIds?.includes(t.id))) store.update('recipes', r.id, { tagIds: r.tagIds.filter((x) => x !== t.id) });
-          store.remove('tags', t.id);
+          store.transaction(() => {
+            for (const r of store.all('recipes').filter((x) => x.tagIds?.includes(t.id))) store.update('recipes', r.id, { tagIds: r.tagIds.filter((x) => x !== t.id) });
+            store.remove('tags', t.id);
+          });
         }
         const ai = e.target.closest('[data-aisle]');
         if (ai) {

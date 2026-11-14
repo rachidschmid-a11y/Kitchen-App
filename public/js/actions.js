@@ -175,11 +175,15 @@ export function openRecipePicker({ title, onPick, suggestInbox = false }) {
 // Einkaufsliste aus den geplanten Gerichten einer Woche (neu) erzeugen.
 export function generateShoppingList(which) {
   const dates = periodDatesFor(which);
-  const entries = store.all('mealPlan').filter((e) => dates.includes(e.date));
+  // Nur Mahlzeiten, die im Plan auch zu sehen sind (abgeschaltete Mahlzeiten zählen nicht mit).
+  const slots = store.settings().mealSlots;
+  const entries = store.all('mealPlan').filter((e) => dates.includes(e.date) && (!e.slot || slots.includes(e.slot)));
   const generated = buildShoppingList({ entries, recipes: store.all('recipes'), catalog: store.all('catalog') });
   const merged = mergeGeneratedItems(store.all('shoppingItems'), generated, uid);
-  store.setAll('shoppingItems', merged);
-  store.setSettings({ listGeneratedFor: dates[0] });
+  store.transaction(() => {
+    store.setAll('shoppingItems', merged);
+    store.setSettings({ listGeneratedFor: dates[0] });
+  });
   return generated.length;
 }
 

@@ -96,8 +96,8 @@ export function recipesView({ query, rerender }) {
     ${list.length ? `<div class="recipe-grid">${list.map((r) => tile(r, matchMap?.get(r.id))).join('')}</div>` : `
       <div class="empty">
         ${icon('book')}
-        <p>${store.all('recipes').length ? 'Kein Rezept passt zu diesen Filtern.' : 'Noch keine Rezepte. Legt das erste an oder importiert eure Sammlung (Import/rezepte-import.json).'}</p>
-        ${store.all('recipes').length ? '' : `<div class="btn-row"><a class="btn primary" href="#/neu">${icon('plus')} Rezept anlegen</a><a class="btn" href="#/import">${icon('sparkle')} Rezept importieren</a><a class="btn" href="#/mehr">${icon('upload')} Sammlung (Datei)</a></div>`}
+        <p>${store.all('recipes').length ? 'Kein Rezept passt zu diesen Filtern.' : 'Noch keine Rezepte. Legt das erste an, fotografiert eins aus dem Kochbuch oder importiert eine Rezeptdatei.'}</p>
+        ${store.all('recipes').length ? '' : `<div class="btn-row"><a class="btn primary" href="#/neu">${icon('plus')} Rezept anlegen</a><a class="btn" href="#/import">${icon('sparkle')} Rezept importieren</a><a class="btn" href="#/daten">${icon('upload')} Rezeptdatei</a></div>`}
       </div>`}`;
 
   return {

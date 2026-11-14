@@ -6,6 +6,7 @@ import {
   members, me, setMe, addMember, updateMember, removeMember, avatar, MEMBER_TONES, MAX_NAME, skipWho, currentUser, suggestedName,
 } from '../members.js';
 import { signOut } from '../firebase.js';
+import { clearPhotoCache } from '../photos.js';
 
 export function whoAmIDialog() {
   const list = members().filter((m) => !m.uid);
@@ -77,7 +78,7 @@ export function mountPeople(root) {
     if (e.target.closest('[data-who]')) whoAmIDialog();
     if (e.target.closest('[data-signout]')) {
       const ok = await confirmDialog({ title: 'Abmelden?', text: 'Auf diesem Gerät werden die zwischengespeicherten Daten entfernt. In der gemeinsamen Datenbank bleibt alles erhalten.', confirm: 'Abmelden' });
-      if (ok) { await signOut(); location.reload(); }
+      if (ok) { await clearPhotoCache().catch(() => {}); await signOut(); location.reload(); }
     }
     const tone = e.target.closest('[data-member-tone]');
     if (tone) {

@@ -6,7 +6,7 @@
    nie über diesen Service Worker.
    Bei neuen Dateien: APP_SHELL ergänzen (ein Test prüft das) und CACHE hochzählen. */
 
-var CACHE = 'unsere-kueche-v8';
+var CACHE = 'unsere-kueche-v9';
 var APP_SHELL = [
   './', 'index.html', 'teilen.html', 'manifest.webmanifest', 'css/app.css',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
@@ -25,7 +25,9 @@ var FIREBASE_SDK = [
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE).then(function (cache) {
-      return cache.addAll(APP_SHELL).then(function () { return cache.addAll(FIREBASE_SDK); });
+      return cache.addAll(APP_SHELL).then(function () { return cache.addAll(FIREBASE_SDK); })
+        // Firebase-Zugangsdaten für den Start ohne Netz (gibt es nur auf Firebase Hosting).
+        .then(function () { return cache.add('/__/firebase/init.json').catch(function () {}); });
     }).catch(function () {})
       .then(function () { return self.skipWaiting(); })
   );

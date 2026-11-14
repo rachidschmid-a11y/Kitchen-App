@@ -14,11 +14,15 @@ const UNIT_ALIASES = {
   tasse: 'Tasse', tassen: 'Tasse', handvoll: 'Handvoll', zweig: 'Zweig', zweige: 'Zweig',
   würfel: 'Würfel', blatt: 'Blatt', blätter: 'Blatt', kopf: 'Kopf', köpfe: 'Kopf',
   stange: 'Stange', stangen: 'Stange', knolle: 'Knolle', knollen: 'Knolle', schuss: 'Schuss',
+  bd: 'Bund', stiel: 'Stiel', stiele: 'Stiel', stängel: 'Stiel', stengel: 'Stiel',
+  tüte: 'Tüte', tüten: 'Tüte', beutel: 'Beutel', flasche: 'Flasche', flaschen: 'Flasche',
+  rolle: 'Rolle', rollen: 'Rolle', rispe: 'Rispe', rispen: 'Rispe', tropfen: 'Tropfen', spritzer: 'Spritzer',
 };
 
 const UNIT_PLURALS = {
   Prise: 'Prisen', Dose: 'Dosen', Packung: 'Packungen', Zehe: 'Zehen', Scheibe: 'Scheiben',
   Tasse: 'Tassen', Zweig: 'Zweige', Kopf: 'Köpfe', Stange: 'Stangen', Knolle: 'Knollen',
+  Stiel: 'Stiele', Tüte: 'Tüten', Flasche: 'Flaschen', Rolle: 'Rollen', Rispe: 'Rispen',
 };
 
 // Umrechnung auf eine gemeinsame Basis, damit 1 kg + 200 g zusammengezählt werden kann.
@@ -52,9 +56,13 @@ export function parseNumber(str) {
   if (frac) return (frac[1] ? Number(frac[1]) : 0) + FRACTION_CHARS[frac[2]];
   const mixed = s.match(/^(?:(\d+)\s+)?(\d+)\/(\d+)$/);
   if (mixed) return (mixed[1] ? Number(mixed[1]) : 0) + Number(mixed[2]) / Number(mixed[3]);
+  // „1.200 g“ ist im Deutschen eintausendzweihundert, nicht 1,2.
+  if (THOUSANDS.test(s)) return Number(s.replace(/\./g, ''));
   const n = Number(s.replace(',', '.'));
   return Number.isFinite(n) ? n : null;
 }
+
+const THOUSANDS = /^\d{1,3}(?:\.\d{3})+$/;
 
 const deNum = (x) => String(x).replace('.', ',');
 
@@ -95,7 +103,8 @@ export function formatQuantity(amount, unit, amountMax = null, factor = 1) {
 // ---------- Zutaten zerlegen ----------
 
 export function parseIngredientLine(line) {
-  let rest = String(line).trim().replace(/^[-•*]\s*/, '');
+  // Aufzählungszeichen und „ca.“ vor der Menge fallen weg.
+  let rest = String(line).trim().replace(/^[-•*]\s*/, '').replace(/^(?:ca\.?|circa|etwa)\s+(?=[\d½⅓⅔¼¾⅛])/i, '');
   if (!rest) return null;
   let amount = null;
   let amountMax = null;
@@ -123,6 +132,8 @@ export function parseIngredientLine(line) {
       rest = rest.slice(u[0].length).trim();
     }
   }
+  // „1.500 kg“ meint anderthalb Kilo – Tausenderpunkte gibt es nur bei kleinen Einheiten.
+  if (q && (unit === 'kg' || unit === 'l') && THOUSANDS.test(q[1].trim())) amount = Number(q[1].trim());
   let note = '';
   const paren = rest.match(/\s*\(([^)]*)\)\s*/);
   if (paren) {
@@ -149,14 +160,44 @@ export function parseIngredients(text) {
     const line = raw.trim();
     if (!line) { section = ''; continue; }
     if (/:$/.test(line)) { section = line.slice(0, -1).trim(); continue; }
-    const ing = parseIngredientLine(line);
-    if (ing) out.push(section ? { ...ing, section } : ing);
+    for (const part of splitSeasonings(line)) {
+      const ing = parseIngredientLine(part);
+      if (ing) out.push(section ? { ...ing, section } : ing);
+    }
   }
   return out;
 }
 
+// „Salz, Pfeffer“ oder „Salz und frisch gemahlener Pfeffer“ sind zwei Zutaten – sonst ginge der
+// Pfeffer als bloßer Hinweis beim Salz unter und fehlte auf der Einkaufsliste.
+const SEASONING = /^(?:(?:etwas|frisch|frischer|gemahlener|schwarzer|weißer|bunter|grober|grobes|feines)\s+){0,3}(?:meer)?(?:salz|pfeffer|zucker|muskat(?:nuss)?|chili(?:flocken|pulver)?|paprikapulver|cayennepfeffer|zimt|kreuzkümmel|öl|olivenöl)$/i;
+
+function splitSeasonings(line) {
+  const text = line.replace(/^[-•*]\s*/, '');
+  if (/^[\d½⅓⅔¼¾⅛]/.test(text) || text.includes('(')) return [line];
+  const words = text.split(/\s*,\s*|\s+und\s+/).map((w) => w.trim()).filter(Boolean);
+  return words.length > 1 && words.every((w) => SEASONING.test(w)) ? words : [line];
+}
+
+// Menge ohne Runden – fürs Bearbeiten, damit aus „113 g“ beim Speichern nicht „115 g“ wird.
+function exactAmount(n) {
+  const whole = Math.floor(n + 1e-9);
+  const frac = n - whole;
+  for (const [v, ch] of [[0.125, '⅛'], [0.25, '¼'], [1 / 3, '⅓'], [0.5, '½'], [2 / 3, '⅔'], [0.75, '¾']]) {
+    if (Math.abs(frac - v) < 1e-4) return (whole ? String(whole) : '') + ch;
+  }
+  return deNum(Math.round(n * 1000) / 1000);
+}
+
+function exactQuantity(amount, unit, amountMax) {
+  if (amount == null) return '';
+  const num = amountMax != null ? `${exactAmount(amount)}–${exactAmount(amountMax)}` : exactAmount(amount);
+  const label = unitLabel(unit, amountMax ?? amount);
+  return label ? `${num} ${label}` : num;
+}
+
 export function ingredientToText(ing) {
-  const qty = formatQuantity(ing.amount, ing.unit, ing.amountMax);
+  const qty = exactQuantity(ing.amount, ing.unit, ing.amountMax);
   const unitWord = ing.unit === 'Stück' && ing.amount != null ? ' Stück' : '';
   return `${qty}${unitWord}${qty ? ' ' : ''}${ing.name}${ing.note ? ', ' + ing.note : ''}`.trim();
 }
@@ -426,8 +467,14 @@ export function matchRecipesToItems(recipes, items, catalog) {
 
 // Zutatensuche: mehrere Begriffe mit Komma („Feta, Paprika“) – jeder muss in einer Zutat vorkommen.
 // Liefert die gefundenen Zutaten oder null. „Tomaten“ findet auch „Tomate“ (Wortstamm).
+// Wortstamm für die Suche; kurze Wörter bleiben ganz, damit „Reis“ nicht auch „Freilandeier“ findet.
+function searchStem(word) {
+  const s = singular(word);
+  return s.length >= 4 ? s : word;
+}
+
 export function ingredientMatches(recipe, q) {
-  const terms = String(q).split(',').map((t) => singular(normalizeName(t))).filter(Boolean);
+  const terms = String(q).split(',').map((t) => searchStem(normalizeName(t))).filter(Boolean);
   if (!terms.length) return [];
   const names = (recipe.ingredients || []).map((i) => i.name).filter(Boolean);
   const hits = [];

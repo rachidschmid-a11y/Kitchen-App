@@ -73,7 +73,7 @@ function renderNav(section) {
     : `${icon('users')}<span><b>Wer bist du?</b><em>Profil anlegen</em></span>`;
 }
 
-function render({ keepScroll = false } = {}) {
+function render({ keepScroll = false, keepInputs = false } = {}) {
   const { path, query } = parseHash();
   let match = null;
   for (const [re, section, getView] of ROUTES) {
@@ -86,6 +86,10 @@ function render({ keepScroll = false } = {}) {
   const focusId = active && viewEl.contains(active) && active.id ? active.id : null;
   const sel = focusId && 'selectionStart' in active ? [active.selectionStart, active.selectionEnd] : null;
   const scrollY = window.scrollY;
+  // Kommt die Änderung von einem anderen Gerät, bleibt stehen, was hier gerade getippt wird.
+  const typed = keepInputs ? [...viewEl.querySelectorAll('input[id], textarea[id]')]
+    .filter((el) => !['checkbox', 'radio', 'file'].includes(el.type) && el.value !== el.defaultValue)
+    .map((el) => [el.id, el.value]) : [];
 
   const result = match.view({ params: match.params, query, path, rerender: () => render({ keepScroll: true }) });
   if (!result) return;
@@ -97,6 +101,10 @@ function render({ keepScroll = false } = {}) {
   document.title = result.title ? `${result.title} · ${store.settings().householdName}` : store.settings().householdName;
   renderNav(match.section);
 
+  for (const [id, value] of typed) {
+    const el = document.getElementById(id);
+    if (el && el.value !== value) el.value = value;
+  }
   if (focusId) {
     const el = document.getElementById(focusId);
     if (el) {
@@ -115,17 +123,19 @@ window.addEventListener('hashchange', () => {
 });
 
 // Bei Datenänderungen neu zeichnen – außer in Formularen, die ihren eigenen Stand halten.
-store.subscribe(() => {
+store.subscribe((info = {}) => {
   if (!started) return;
   if (current && current.live === false) { renderNav(current.section); return; }
-  render({ keepScroll: true });
+  render({ keepScroll: true, keepInputs: !!info.remote });
 });
 
 let lastErrorToast = 0;
 store.onError((e) => {
   if (Date.now() - lastErrorToast < 4000) return;
   lastErrorToast = Date.now();
-  toast(e?.code === 'permission-denied' ? 'Keine Berechtigung zum Speichern – bitte neu anmelden.' : 'Speichern fehlgeschlagen – bitte später noch einmal versuchen.');
+  toast(e?.code === 'permission-denied' ? 'Keine Berechtigung zum Speichern – bitte neu anmelden.'
+    : e?.code === 'invalid-data' ? `Nicht gespeichert: ${e.message}`
+    : 'Speichern fehlgeschlagen – bitte später noch einmal versuchen.');
 });
 store.setActor(meId);
 

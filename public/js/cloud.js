@@ -24,7 +24,15 @@ let photoTimer = null;
 // 'ready' | 'empty' | 'denied' | 'offline'
 export async function openHousehold() {
   try {
-    const snap = await getDocFromServer(householdRef);
+    // Bei schlechtem Empfang (Supermarkt) nicht auf den Server warten, wenn die Daten schon auf dem Gerät liegen.
+    const fromServer = getDocFromServer(householdRef);
+    fromServer.catch(() => {});
+    const first = await Promise.race([fromServer, new Promise((res) => setTimeout(() => res(null), 3500))]);
+    if (!first) {
+      const cached = await getDocFromCache(householdRef).catch(() => null);
+      if (cached?.exists()) return 'ready';
+    }
+    const snap = first || await fromServer;
     return snap.exists() ? 'ready' : 'empty';
   } catch (e) {
     if (e.code === 'permission-denied') return 'denied';
@@ -43,7 +51,8 @@ function diffOps(state) {
   const ops = [];
   const sj = json(state.settings);
   if (sj !== baseline.settings) {
-    ops.push({ ref: householdRef, data: toFirestore({ settings: state.settings, version: 1 }) });
+    // Über JSON: genau das speichern, was auch verglichen wird (ohne undefined, Funktionen o. Ä.).
+    ops.push({ ref: householdRef, data: toFirestore({ settings: JSON.parse(sj), version: 1 }), label: 'Einstellungen' });
     baseline.settings = sj;
   }
   for (const col of COLLECTIONS) {
@@ -54,8 +63,8 @@ function diffOps(state) {
       seen.add(d.id);
       const j = json(d);
       if (known.get(d.id) === j) continue;
-      const { id, ...data } = d;
-      ops.push({ ref: doc(householdRef, col, id), data: toFirestore(data) });
+      const { id, ...data } = JSON.parse(j);
+      ops.push({ ref: doc(householdRef, col, id), data: toFirestore(data), label: d.title || d.name || d.note || col });
       known.set(id, j);
     }
     for (const id of [...known.keys()]) {
@@ -69,6 +78,7 @@ function diffOps(state) {
 
 function send(ops) {
   const commits = [];
+  const rejected = [];
   for (let i = 0; i < ops.length; i += MAX_OPS) {
     const batch = writeBatch(db);
     for (const op of ops.slice(i, i + MAX_OPS)) {
@@ -76,12 +86,17 @@ function send(ops) {
         if (op.del) batch.delete(op.ref);
         else batch.set(op.ref, op.data);
       } catch (e) {
+        // Firestore nimmt den Eintrag in dieser Form nicht an – beim Namen nennen statt still verlieren.
         console.error('Eintrag kann nicht gespeichert werden', op.ref.path, e);
-        store.reportError(e);
+        rejected.push(op.label || op.ref.id);
       }
     }
     // Ohne Netz bleibt das Paket im Offline-Speicher und geht später raus.
     commits.push(batch.commit().catch((e) => { console.error(e); store.reportError(e); }));
+  }
+  if (rejected.length) {
+    const names = rejected.slice(0, 3).join(', ') + (rejected.length > 3 ? ` und ${rejected.length - 3} weitere` : '');
+    store.reportError(Object.assign(new Error(names), { code: 'invalid-data' }));
   }
   return Promise.all(commits);
 }
